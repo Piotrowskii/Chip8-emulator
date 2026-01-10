@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use sdl2::render::WindowCanvas;
 use sdl2::{AudioSubsystem, EventPump, Sdl};
 use sdl2::event::Event;
@@ -44,7 +45,7 @@ impl Emulator{
             context: sdl_context,
             canvas,
             event_pump,
-            chip8: Chip8::new(),
+            chip8: Chip8::get_new_and_start(),
             playing_sounds: false,
             audio_device
         }
@@ -53,15 +54,17 @@ impl Emulator{
     pub fn run(&mut self){
         'running: loop {
             for event in self.event_pump.poll_iter() {
-                match event {
-                    Event::KeyDown { keycode: Some(Keycode::Escape), .. } => { break 'running },
-                    _ => {}
+                if matches!(event, Event::KeyDown {keycode: Some(Keycode::Escape), ..}) {
+                    break 'running;
+                }
+
+                if let Some(keypad_character) = Self::get_keypad_number(event){
+                    self.chip8.handle_input(keypad_character);
                 }
             }
 
             self.canvas.clear();
             self.draw_screen();
-            self.chip8.decrement_timers();
             self.make_sounds();
             self.canvas.present();
             ::std::thread::sleep(Duration::new(0, 16_666_667));
@@ -71,14 +74,15 @@ impl Emulator{
     fn draw_screen(&mut self){
         self.canvas.set_draw_color(Color::BLACK);
         self.canvas.clear();
+        self.canvas.set_draw_color(Color::RED);
 
-        self.canvas.set_draw_color(Color::WHITE);
+        let display = self.get_display_copy();
 
         for y in 0..DISPLAY_HEIGHT {
             for x in 0..DISPLAY_WIDTH {
                 let idx = y * DISPLAY_WIDTH + x;
 
-                if self.chip8.display[idx] {
+                if !display[idx] {
                     let rect = Rect::new(
                         (x as u32 * PIXEL_SIZE) as i32,
                         (y as u32 * PIXEL_SIZE) as i32,
@@ -92,6 +96,11 @@ impl Emulator{
         }
 
         self.canvas.present();
+    }
+
+    fn get_display_copy(&self) -> [bool; DISPLAY_HEIGHT * DISPLAY_WIDTH]{
+        let display = self.chip8.display.lock().unwrap();
+        *display
     }
 
     pub fn get_audio_device(context: &mut Sdl) -> Option<AudioDevice<SquareWave>>{
@@ -116,7 +125,7 @@ impl Emulator{
 
     fn make_sounds(&mut self){
         if let Some(device) = &self.audio_device{
-            if self.chip8.sound_timer > 0 && !self.playing_sounds {
+            if !self.playing_sounds && *self.chip8.sound_timer.lock().unwrap() > 0  {
                 device.resume();
             }
             else{
@@ -125,30 +134,30 @@ impl Emulator{
         }
     }
 
-    fn handle_keypress(&mut self, event: Event){
+    fn get_keypad_number(event: Event) -> Option<KeyPad> {
         match event {
             Event::KeyDown {keycode: Some(key), ..} =>{
                 match key{
-                    Keycode::NUM_1 => {self.chip8.handle_input(KeyPad::Num1)}
-                    Keycode::NUM_2 => {self.chip8.handle_input(KeyPad::Num2)}
-                    Keycode::NUM_3 => {self.chip8.handle_input(KeyPad::Num3)}
-                    Keycode::NUM_4 => {self.chip8.handle_input(KeyPad::C)}
-                    Keycode::Q => {self.chip8.handle_input(KeyPad::Num4)}
-                    Keycode::W => {self.chip8.handle_input(KeyPad::Num5)}
-                    Keycode::E => {self.chip8.handle_input(KeyPad::Num6)}
-                    Keycode::R => {self.chip8.handle_input(KeyPad::D)}
-                    Keycode::A => {self.chip8.handle_input(KeyPad::Num7)}
-                    Keycode::S => {self.chip8.handle_input(KeyPad::Num8)}
-                    Keycode::D => {self.chip8.handle_input(KeyPad::Num9)}
-                    Keycode::F => {self.chip8.handle_input(KeyPad::E)}
-                    Keycode::Z => {self.chip8.handle_input(KeyPad::A)}
-                    Keycode::X => {self.chip8.handle_input(KeyPad::Num0)}
-                    Keycode::C => {self.chip8.handle_input(KeyPad::B)}
-                    Keycode::V => {self.chip8.handle_input(KeyPad::F)}
-                    _ => {}
+                    Keycode::NUM_1 => Some(KeyPad::Num1),
+                    Keycode::NUM_2 => {Some(KeyPad::Num2)}
+                    Keycode::NUM_3 => {Some(KeyPad::Num3)}
+                    Keycode::NUM_4 => {Some(KeyPad::C)}
+                    Keycode::Q => {Some(KeyPad::Num4)}
+                    Keycode::W => {Some(KeyPad::Num5)}
+                    Keycode::E => {Some(KeyPad::Num6)}
+                    Keycode::R => {Some(KeyPad::D)}
+                    Keycode::A => {Some(KeyPad::Num7)}
+                    Keycode::S => {Some(KeyPad::Num8)}
+                    Keycode::D => {Some(KeyPad::Num9)}
+                    Keycode::F => {Some(KeyPad::E)}
+                    Keycode::Z => {Some(KeyPad::A)}
+                    Keycode::X => {Some(KeyPad::Num0)}
+                    Keycode::C => {Some(KeyPad::B)}
+                    Keycode::V => {Some(KeyPad::F)}
+                    _ => {None}
                 }
             }
-            _ => {}
+            _ => {None}
         }
 
     }
