@@ -1,15 +1,14 @@
-use std::sync::Arc;
+use std::thread;
 use sdl2::render::WindowCanvas;
-use sdl2::{AudioSubsystem, EventPump, Sdl};
+use sdl2::{EventPump, Sdl};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::video::Window;
 use crate::chip_8::{Chip8, KeyPad};
 use crate::parameters::*;
-use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
-use std::time::Duration;
+use sdl2::audio::{AudioDevice, AudioSpecDesired};
+use std::time::{Duration, Instant};
 use crate::square_wave::SquareWave;
 
 extern crate sdl2;
@@ -52,7 +51,12 @@ impl Emulator{
     }
 
     pub fn run(&mut self){
+        let drawn_frame = false;
+
         'running: loop {
+            let start = Instant::now();
+
+
             for event in self.event_pump.poll_iter() {
                 if matches!(event, Event::KeyDown {keycode: Some(Keycode::Escape), ..}) {
                     break 'running;
@@ -67,14 +71,16 @@ impl Emulator{
             self.draw_screen();
             self.make_sounds();
             self.canvas.present();
-            ::std::thread::sleep(Duration::new(0, 16_666_667));
+
+            let elapsed = start.elapsed().as_nanos() as u64;
+            thread::sleep(Duration::from_nanos(16_666_667u64.saturating_sub(elapsed) ));
         }
     }
 
     fn draw_screen(&mut self){
         self.canvas.set_draw_color(Color::BLACK);
         self.canvas.clear();
-        self.canvas.set_draw_color(Color::RED);
+        self.canvas.set_draw_color(Color::WHITE);
 
         let display = self.get_display_copy();
 
@@ -82,7 +88,7 @@ impl Emulator{
             for x in 0..DISPLAY_WIDTH {
                 let idx = y * DISPLAY_WIDTH + x;
 
-                if !display[idx] {
+                if display[idx] {
                     let rect = Rect::new(
                         (x as u32 * PIXEL_SIZE) as i32,
                         (y as u32 * PIXEL_SIZE) as i32,
@@ -117,7 +123,7 @@ impl Emulator{
             SquareWave {
                 phase_inc: 440.0 / spec.freq as f32,
                 phase: 0.0,
-                volume: 0.25
+                volume: 0.05
             }
         }).ok()?;
         Some(device)
@@ -125,7 +131,7 @@ impl Emulator{
 
     fn make_sounds(&mut self){
         if let Some(device) = &self.audio_device{
-            if !self.playing_sounds && *self.chip8.sound_timer.lock().unwrap() > 0  {
+            if !self.playing_sounds && self.chip8.state.lock().unwrap().sound_timer > 0  {
                 device.resume();
             }
             else{
