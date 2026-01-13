@@ -8,7 +8,6 @@ use crate::emulator::Emulator;
 pub fn main() -> Result<(), String> {
     let mut emulator = Emulator::new();
     emulator.run();
-    
 
     Ok(())
 }

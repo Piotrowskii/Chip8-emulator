@@ -28,7 +28,7 @@ impl Emulator{
         let video_subsystem = sdl_context.video().expect("SDL initialization failed");
 
         let window = video_subsystem
-            .window("Chip8 emulator", 800, 600)
+            .window("Chip8 emulator", 768, 384)
             .position_centered()
             .opengl()
             .build()
@@ -54,13 +54,13 @@ impl Emulator{
         'running: loop {
             let start = Instant::now();
 
-            for event in self.event_pump.poll_iter() {
-                if matches!(event, Event::KeyDown {keycode: Some(Keycode::Escape), ..}) {
-                    break 'running;
-                }
+            let events: Vec<Event> = self.event_pump.poll_iter().collect::<Vec<Event>>();
 
-                if let Some(keypad_character) = Self::get_keypad_number(event){
-                    self.chip8.handle_input(keypad_character);
+            for event in events {
+                match event {
+                    Event::Quit {..} |
+                    Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
+                    _ => self.handle_keypad_presses(&event),
                 }
             }
 
@@ -137,31 +137,42 @@ impl Emulator{
         }
     }
 
-    fn get_keypad_number(event: Event) -> Option<KeyPad> {
-        match event {
-            Event::KeyDown {keycode: Some(key), ..} =>{
-                match key{
-                    Keycode::NUM_1 => Some(KeyPad::Num1),
-                    Keycode::NUM_2 => {Some(KeyPad::Num2)}
-                    Keycode::NUM_3 => {Some(KeyPad::Num3)}
-                    Keycode::NUM_4 => {Some(KeyPad::C)}
-                    Keycode::Q => {Some(KeyPad::Num4)}
-                    Keycode::W => {Some(KeyPad::Num5)}
-                    Keycode::E => {Some(KeyPad::Num6)}
-                    Keycode::R => {Some(KeyPad::D)}
-                    Keycode::A => {Some(KeyPad::Num7)}
-                    Keycode::S => {Some(KeyPad::Num8)}
-                    Keycode::D => {Some(KeyPad::Num9)}
-                    Keycode::F => {Some(KeyPad::E)}
-                    Keycode::Z => {Some(KeyPad::A)}
-                    Keycode::X => {Some(KeyPad::Num0)}
-                    Keycode::C => {Some(KeyPad::B)}
-                    Keycode::V => {Some(KeyPad::F)}
-                    _ => {None}
+    fn handle_keypad_presses(&mut self, event: &Event){
+        match event{
+            Event::KeyDown{keycode: Some(key), ..} => {
+                if let Some(valid_key) = Self::get_keypad_number(key){
+                    self.chip8.handle_input(valid_key, true);
                 }
             }
+            Event::KeyUp{keycode: Some(key), ..} => {
+                if let Some(valid_key) = Self::get_keypad_number(key){
+                    self.chip8.handle_input(valid_key, false);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn get_keypad_number(key: &Keycode) -> Option<KeyPad> {
+        match *key {
+            Keycode::NUM_1 => Some(KeyPad::Num1),
+            Keycode::NUM_2 => {Some(KeyPad::Num2)}
+            Keycode::NUM_3 => {Some(KeyPad::Num3)}
+            Keycode::NUM_4 => {Some(KeyPad::C)}
+            Keycode::Q => {Some(KeyPad::Num4)}
+            Keycode::W => {Some(KeyPad::Num5)}
+            Keycode::E => {Some(KeyPad::Num6)}
+            Keycode::R => {Some(KeyPad::D)}
+            Keycode::A => {Some(KeyPad::Num7)}
+            Keycode::S => {Some(KeyPad::Num8)}
+            Keycode::D => {Some(KeyPad::Num9)}
+            Keycode::F => {Some(KeyPad::E)}
+            Keycode::Z => {Some(KeyPad::A)}
+            Keycode::X => {Some(KeyPad::Num0)}
+            Keycode::C => {Some(KeyPad::B)}
+            Keycode::V => {Some(KeyPad::F)}
             _ => {None}
         }
-
     }
+
 }
