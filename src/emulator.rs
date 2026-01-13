@@ -51,11 +51,8 @@ impl Emulator{
     }
 
     pub fn run(&mut self){
-        let drawn_frame = false;
-
         'running: loop {
             let start = Instant::now();
-
 
             for event in self.event_pump.poll_iter() {
                 if matches!(event, Event::KeyDown {keycode: Some(Keycode::Escape), ..}) {

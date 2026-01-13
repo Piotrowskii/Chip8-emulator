@@ -110,8 +110,8 @@ impl Chip8{
     fn start_execution_thread(&mut self) {
         let display = Arc::clone(&self.display);
         let state = Arc::clone(&self.state);
-
         let running = Arc::clone(&self.running);
+        
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
                 let start = Instant::now();
@@ -180,12 +180,24 @@ impl Chip8{
                 cpu_state.stack.push(cpu_state.pc as u16);
                 cpu_state.pc = di.nnn as usize;
             },
+            DecodedInstruction {opcode: 0x3, ..} => {
+                if cpu_state.registers[di.x as usize] == di.nn { cpu_state.pc += 2; }
+            }
+            DecodedInstruction {opcode: 0x4, ..} => {
+                if cpu_state.registers[di.x as usize] != di.nn { cpu_state.pc += 2; }
+            }
+            DecodedInstruction {opcode: 0x5, n: 0x0, ..} => {
+                if cpu_state.registers[di.x as usize] == cpu_state.registers[di.y as usize]{ cpu_state.pc += 2; }
+            }
             DecodedInstruction {opcode: 0x6, ..} => { cpu_state.registers[di.x as usize] = di.nn }
             DecodedInstruction {opcode: 0x7, ..} => {
                 let result = cpu_state.registers[di.x as usize].overflowing_add(di.nn);
 
                 cpu_state.registers[di.x as usize] = result.0;
                 cpu_state.registers[0xF] = if result.1 { 1 } else { 0 };
+            }
+            DecodedInstruction {opcode: 0x9, n: 0x0, ..} => {
+                if cpu_state.registers[di.x as usize] != cpu_state.registers[di.y as usize]{ cpu_state.pc += 2; }
             }
             DecodedInstruction {opcode: 0xA, ..} => { cpu_state.i = di.nnn }
             DecodedInstruction {opcode: 0xC, ..} => {
@@ -220,7 +232,12 @@ impl Chip8{
             DecodedInstruction {opcode: 0xF, y: 0x0, n: 0x7, ..} => { cpu_state.registers[di.x as usize] = cpu_state.delay_timer }
             DecodedInstruction {opcode: 0xF, y: 0x1, n: 0x5, ..} => { cpu_state.delay_timer = cpu_state.registers[di.x as usize] }
             DecodedInstruction {opcode: 0xF, y: 0x1, n: 0x8, ..} => { cpu_state.sound_timer = cpu_state.registers[di.x as usize] }
-            DecodedInstruction {opcode: 0xF, y: 0x1, n: 0xE, ..} => { cpu_state.i += cpu_state.registers[di.x as usize] as u16}
+            DecodedInstruction {opcode: 0xF, y: 0x1, n: 0xE, ..} => {
+                let value = cpu_state.i.overflowing_add(cpu_state.registers[di.x as usize] as u16);
+                
+                cpu_state.i = value.0;
+                cpu_state.registers[0xF] = if value.1 { 1 } else { 0 };
+            }
                 _ => {}
         }
     }
