@@ -1,10 +1,13 @@
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::{fs, thread};
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
+use sdl2::keyboard::Scancode::Mute;
 use crate::parameters::{DISPLAY_HEIGHT, DISPLAY_WIDTH, FONT_DATA};
 
-#[repr(u8)]
+#[repr(usize)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum KeyPad{
     Num0 = 0,
     Num1 = 1,
@@ -50,7 +53,7 @@ pub struct Chip8{
     pub state: Arc<Mutex<CpuState>>,
     pub display: Arc<Mutex<[bool; DISPLAY_HEIGHT * DISPLAY_WIDTH]>>,
     pub running: Arc<AtomicBool>,
-    pub pressed_key: Arc<AtomicU8>
+    pub keys: Arc<Mutex<[bool; 16]>>,
 }
 
 impl Chip8{
@@ -70,19 +73,19 @@ impl Chip8{
             })),
             display: Arc::new(Mutex::new([false; 64 * 32])),
             running: Arc::new(AtomicBool::new(true)),
-            pressed_key: Arc::new(AtomicU8::new(0)),
+            keys: Arc::new(Mutex::new([false; 16])),
         }
     }
 
-    pub fn get_new_and_start() -> Chip8{
+    pub fn get_new_and_start(rom_file: PathBuf) -> Chip8{
         let mut chip8 = Chip8::new();
-        chip8.start();
+        chip8.start(rom_file);
         chip8
     }
 
-    fn start(&mut self){
+    fn start(&mut self, rom_file: PathBuf){
         self.load_font_into_memory();
-        self.load_cartridge("roms/flightrunner.ch8");
+        self.load_cartridge(rom_file);
         self.start_timer_thread();
         self.start_execution_thread();
     }
@@ -95,11 +98,11 @@ impl Chip8{
         }
     }
 
-    pub fn load_cartridge(&mut self, rom_path: &str){
+    pub fn load_cartridge(&mut self, rom_file: PathBuf){
         let mut state = self.state.lock().unwrap();
 
-        let rom = fs::read(rom_path);
-        if let Ok(rom) = rom{
+        let file = fs::read(rom_file);
+        if let Ok(rom) = file{
             for (i, byte) in rom.iter().enumerate(){
                 state.memory[0x200 + i] = *byte;
             }
@@ -119,8 +122,8 @@ impl Chip8{
 
                 {
                     let mut cpu_state = state.lock().unwrap();
-                    cpu_state.delay_timer = cpu_state.delay_timer.saturating_sub(1);
-                    cpu_state.sound_timer = cpu_state.sound_timer.saturating_sub(1);
+                    cpu_state.delay_timer = cpu_state.delay_timer.saturating_sub(1u8);
+                    cpu_state.sound_timer = cpu_state.sound_timer.saturating_sub(1u8);
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
@@ -134,7 +137,7 @@ impl Chip8{
         let display = Arc::clone(&self.display);
         let state = Arc::clone(&self.state);
         let running = Arc::clone(&self.running);
-        let pressed_key = Arc::clone(&self.pressed_key);
+        let keys = Arc::clone(&self.keys);
         
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
@@ -143,7 +146,7 @@ impl Chip8{
                 {
                     let mut cpu_state = state.lock().unwrap();
                     let mut display = display.lock().unwrap();
-                    let pressed_key: &AtomicU8 = &pressed_key;
+                    let keys = keys.lock().unwrap();
     
                     let instruction = {
                         Self::fetch(&mut cpu_state)
@@ -151,7 +154,7 @@ impl Chip8{
     
                     let decoded_instruction = Self::decode(instruction);
     
-                    Self::execute(decoded_instruction, &mut cpu_state, &mut display, &pressed_key);
+                    Self::execute(decoded_instruction, &mut cpu_state, &mut display, &keys);
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
@@ -160,16 +163,9 @@ impl Chip8{
         });
     }
 
-    pub fn handle_input(&mut self, key: KeyPad, pressed: bool){
-        let current_key = self.pressed_key.load(Ordering::Relaxed);
-        if pressed{
-            self.pressed_key.store(key as u8, Ordering::Relaxed);
-        }
-        else{
-            if key as u8 == current_key{
-                self.pressed_key.store(0, Ordering::Relaxed);
-            }
-        }
+    pub fn handle_input(&mut self, pressed_key: KeyPad, pressed: bool){
+        let mut keys = self.keys.lock().unwrap();
+        keys[pressed_key as usize] = pressed;
     }
     
 
@@ -198,7 +194,7 @@ impl Chip8{
         }
     }
 
-    pub fn execute(di: DecodedInstruction, cpu: &mut CpuState, display: &mut [bool; 2048], pressed_key: &AtomicU8){
+    pub fn execute(di: DecodedInstruction, cpu: &mut CpuState, display: &mut [bool; 2048], keys: &[bool;16]){
         match di {
             DecodedInstruction {opcode: 0x0, x: 0x0, y: 0xE, n: 0x0, ..} => { display.fill(false) },
             DecodedInstruction {opcode: 0x0, x: 0x0, y: 0xE, n: 0xE, ..} => {
@@ -252,25 +248,27 @@ impl Chip8{
                 let result = cpu.registers[di.x as usize].overflowing_sub(cpu.registers[di.y as usize]);
 
                 cpu.registers[di.x as usize] = result.0;
-                cpu.registers[0xF] = if result.1 {1} else {0};
+                cpu.registers[0xF] = if result.1 {0} else {1};
             }
             DecodedInstruction {opcode: 0x8, n: 0x6, .. } => {
                 if !cpu.ins_8XY6_and_8XYE_alt { cpu.registers[di.x as usize] = cpu.registers[di.y as usize] };
 
-                cpu.registers[0xF] = (cpu.registers[di.x as usize] >> 0) & 1;
-                cpu.registers[di.x as usize] = cpu.registers[di.x as usize] >> 1;
+                let bit = (cpu.registers[di.x as usize] >> 0) & 1;
+                cpu.registers[di.x as usize] >>= 1;
+                cpu.registers[0xF] = bit;
             }
             DecodedInstruction {opcode: 0x8, n: 0x7, .. } => {
                 let result = cpu.registers[di.y as usize].overflowing_sub(cpu.registers[di.x as usize]);
 
                 cpu.registers[di.x as usize] = result.0;
-                cpu.registers[0xF] = if result.1 {1} else {0};
+                cpu.registers[0xF] = if result.1 {0} else {1};
             }
             DecodedInstruction {opcode: 0x8, n: 0xE, .. } => {
                 if !cpu.ins_8XY6_and_8XYE_alt { cpu.registers[di.x as usize] = cpu.registers[di.y as usize] };
 
-                cpu.registers[0xF] = (cpu.registers[di.x as usize] << 0) & 1;
-                cpu.registers[di.x as usize] = cpu.registers[di.x as usize] << 1;
+                let bit = (cpu.registers[di.x as usize] & 0b_10000000) >> 7;
+                cpu.registers[di.x as usize] <<= 1;
+                cpu.registers[0xF] = bit;
             }
             DecodedInstruction {opcode: 0x9, n: 0x0, ..} => {
                 if cpu.registers[di.x as usize] != cpu.registers[di.y as usize]{ cpu.pc += 2; }
@@ -310,23 +308,22 @@ impl Chip8{
 
             }
             DecodedInstruction {opcode: 0xE, y: 0x9, n: 0xE, ..} => {
-                if pressed_key.load(Ordering::Relaxed) == cpu.registers[di.x as usize] {
+                if keys[cpu.registers[di.x as usize] as usize] {
                     cpu.pc += 2;
                 }
             }
             DecodedInstruction {opcode: 0xE, y: 0xA, n: 0x1, ..} => {
-                if pressed_key.load(Ordering::Relaxed) != cpu.registers[di.x as usize] {
+                if !keys[cpu.registers[di.x as usize] as usize] {
                     cpu.pc += 2;
                 }
             }
             DecodedInstruction {opcode: 0xF, y: 0x0, n: 0x7, ..} => { cpu.registers[di.x as usize] = cpu.delay_timer }
             DecodedInstruction {opcode: 0xF, y: 0x0, n: 0xA, ..} => {
-                let key = pressed_key.load(Ordering::Relaxed);
-                if(key == 0){
+                let pressed_key = keys.iter().position(|&pressed| pressed);
+                if let Some(pressed_key) = pressed_key {
+                    cpu.registers[di.x as usize] = pressed_key as u8;
+                }else{
                     cpu.pc -= 2;
-                }
-                else{
-                    cpu.registers[di.x as usize] = key;
                 }
             }
             DecodedInstruction {opcode: 0xF, y: 0x1, n: 0x5, ..} => { cpu.delay_timer = cpu.registers[di.x as usize] }

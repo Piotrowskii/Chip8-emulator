@@ -23,7 +23,7 @@ pub struct Emulator {
 }
 
 impl Emulator{
-    pub fn new() -> Emulator {
+    pub fn new(chip8: Chip8) -> Emulator {
         let mut sdl_context = sdl2::init().expect("SDL initialization failed");
         let video_subsystem = sdl_context.video().expect("SDL initialization failed");
 
@@ -44,7 +44,7 @@ impl Emulator{
             context: sdl_context,
             canvas,
             event_pump,
-            chip8: Chip8::get_new_and_start(),
+            chip8,
             playing_sounds: false,
             audio_device
         }
@@ -128,11 +128,15 @@ impl Emulator{
 
     fn make_sounds(&mut self){
         if let Some(device) = &self.audio_device{
-            if !self.playing_sounds && self.chip8.state.lock().unwrap().sound_timer > 0  {
+            let sound_timer = self.chip8.state.lock().unwrap().sound_timer;
+
+            if !self.playing_sounds && sound_timer > 0{
                 device.resume();
+                self.playing_sounds = true;
             }
-            else{
+            else if sound_timer == 0 && self.playing_sounds{
                 device.pause();
+                self.playing_sounds = false;
             }
         }
     }
