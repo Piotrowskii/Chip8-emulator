@@ -5,11 +5,11 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use crate::chip_8::{Chip8, KeyPad};
-use crate::parameters::*;
+use crate::chip8::chip_8::{Chip8, KeyPad};
 use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use std::time::{Duration, Instant};
-use crate::square_wave::SquareWave;
+use crate::emulator::parameters::*;
+use crate::emulator::square_wave::SquareWave;
 
 extern crate sdl2;
 

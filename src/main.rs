@@ -1,11 +1,9 @@
-pub mod emulator;
-mod chip_8;
-mod parameters;
-mod square_wave;
+mod emulator;
+mod chip8;
 
 use rfd::FileDialog;
-use crate::chip_8::Chip8;
-use crate::emulator::Emulator;
+use chip8::chip_8::Chip8;
+use crate::emulator::emulator::Emulator;
 
 pub fn main() -> Result<(), String> {
     let files = FileDialog::new()

@@ -1,5 +1,6 @@
 pub const DISPLAY_WIDTH: usize = 64;
 pub const DISPLAY_HEIGHT: usize = 32;
+pub const DISPLAY_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 pub const PIXEL_SIZE: u32 = 12;
 pub const FONT_DATA: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
