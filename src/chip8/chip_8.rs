@@ -29,36 +29,35 @@ pub enum KeyPad{
     E = 14,
     F = 15,
 }
+
+#[derive(PartialEq, Copy, Clone)]
+pub enum Mode{
+    Chip8,
+    SuperChip,
+    XoChip
+}
 pub struct Chip8{
     pub state: Arc<Mutex<CpuState>>,
-    pub display: Arc<Mutex<[bool; DISPLAY_HEIGHT * DISPLAY_WIDTH]>>,
+    pub display: Arc<Mutex<[bool; DISPLAY_SIZE]>>,
     pub running: Arc<AtomicBool>,
     pub keys: Arc<Mutex<[bool; 16]>>,
+    pub hires_mode: Arc<AtomicBool>,
 }
 
 impl Chip8{
     pub fn new() -> Chip8{
         Chip8{
-            state: Arc::new(Mutex::new(CpuState{
-                memory: [0; 4096],
-                pc: 0x200,
-                i: 0,
-                stack: vec![],
-                delay_timer: 0,
-                sound_timer: 0,
-                registers: [0; 16],
-                ins_8XY6_and_8XYE_alt: false,
-                ins_BNNN_alt: false,
-                ins_FX55_and_FX65_alt: false,
-            })),
-            display: Arc::new(Mutex::new([false; 64 * 32])),
+            state: Arc::new(Mutex::new(CpuState::default())),
+            display: Arc::new(Mutex::new([false; DISPLAY_SIZE])),
             running: Arc::new(AtomicBool::new(true)),
             keys: Arc::new(Mutex::new([false; 16])),
+            hires_mode: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    pub fn get_new_and_start(rom_file: PathBuf) -> Chip8{
+    pub fn get_new_and_start(rom_file: PathBuf, mode: Mode) -> Chip8{
         let mut chip8 = Chip8::new();
+        chip8.set_compatibility_mode(mode);
         chip8.start(rom_file);
         chip8
     }
@@ -70,11 +69,33 @@ impl Chip8{
         self.start_execution_thread();
     }
 
+    fn set_compatibility_mode(&mut self, mode: Mode){
+        let cpu = &mut self.state.lock().unwrap();
+
+        match mode {
+            Mode::Chip8 => {
+                cpu.alt_8XY123 = true;
+                cpu.alt_FX55_FX65 = true;
+            }
+            Mode::SuperChip => {
+                cpu.alt_8XY6_8XYE = true;
+                cpu.alt_BNNN = true;
+            }
+            Mode::XoChip => {
+                cpu.alt_8XY6_8XYE = true;
+            }
+        }
+    }
+
     pub fn load_font_into_memory(&self){
         let mut state = self.state.lock().unwrap();
 
-        for i in 0..80usize{
-            state.memory[i + 80] = FONT_DATA[i];
+        for i in 0..FONT_DATA.len(){
+            state.memory[FONT_MEMORY_START + i] = FONT_DATA[i];
+        }
+
+        for i in 0..BIG_FONT_DATA.len(){
+            state.memory[FONT_MEMORY_START + FONT_DATA.len() + i] = BIG_FONT_DATA[i];
         }
     }
 
@@ -118,6 +139,7 @@ impl Chip8{
         let state = Arc::clone(&self.state);
         let running = Arc::clone(&self.running);
         let keys = Arc::clone(&self.keys);
+        let hires_mode = Arc::clone(&self.hires_mode);
         
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
@@ -127,13 +149,13 @@ impl Chip8{
                     let mut cpu_state = state.lock().unwrap();
                     let mut display = display.lock().unwrap();
                     let keys = keys.lock().unwrap();
-    
+
                     let raw_instruction = {
                         Self::fetch(&mut cpu_state)
                     };
     
                     if let Some(instruction) = Self::decode(raw_instruction){
-                        instruction.execute(&mut cpu_state, &mut display, &keys);
+                        instruction.execute(&mut cpu_state, &mut display, &keys, hires_mode.as_ref(), running.as_ref());
                     }
 
                 }

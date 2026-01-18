@@ -1,3 +1,4 @@
+use std::sync::atomic::Ordering;
 use std::thread;
 use sdl2::render::WindowCanvas;
 use sdl2::{EventPump, Sdl};
@@ -28,7 +29,7 @@ impl Emulator{
         let video_subsystem = sdl_context.video().expect("SDL initialization failed");
 
         let window = video_subsystem
-            .window("Chip8 emulator", 768, 384)
+            .window("Chip8 emulator", (DISPLAY_WIDTH as u32 * PIXEL_SIZE) , (DISPLAY_HEIGHT as u32 * PIXEL_SIZE))
             .position_centered()
             .opengl()
             .build()
@@ -51,7 +52,7 @@ impl Emulator{
     }
 
     pub fn run(&mut self){
-        'running: loop {
+        'running: while self.chip8.running.load(Ordering::Relaxed){
             let start = Instant::now();
 
             let events: Vec<Event> = self.event_pump.poll_iter().collect::<Vec<Event>>();
@@ -101,7 +102,7 @@ impl Emulator{
         self.canvas.present();
     }
 
-    fn get_display_copy(&self) -> [bool; DISPLAY_HEIGHT * DISPLAY_WIDTH]{
+    fn get_display_copy(&self) -> [bool; DISPLAY_SIZE]{
         let display = self.chip8.display.lock().unwrap();
         *display
     }
