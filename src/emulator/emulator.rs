@@ -6,7 +6,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use crate::chip8::chip_8::{Chip8, KeyPad};
+use crate::chip8::chip_8::{Chip8, Display, KeyPad};
 use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use std::time::{Duration, Instant};
 use crate::emulator::parameters::*;
@@ -86,23 +86,40 @@ impl Emulator{
             for x in 0..DISPLAY_WIDTH {
                 let idx = y * DISPLAY_WIDTH + x;
 
-                if display[idx] {
-                    let rect = Rect::new(
-                        (x as u32 * PIXEL_SIZE) as i32,
-                        (y as u32 * PIXEL_SIZE) as i32,
-                        PIXEL_SIZE,
-                        PIXEL_SIZE,
-                    );
+                let color = Self::get_pixel_color(&display, idx);
+                self.canvas.set_draw_color(color);
+                
+                let rect = Rect::new(
+                    (x as u32 * PIXEL_SIZE) as i32,
+                    (y as u32 * PIXEL_SIZE) as i32,
+                    PIXEL_SIZE,
+                    PIXEL_SIZE,
+                );
 
-                    self.canvas.fill_rect(rect).expect("Could not draw the screen");
-                }
+                self.canvas.fill_rect(rect).expect("Could not draw the screen");
+
             }
         }
 
         self.canvas.present();
     }
 
-    fn get_display_copy(&self) -> [bool; DISPLAY_SIZE]{
+    fn get_pixel_color(display: &Display, idx: usize) -> Color{
+        if display.plane_1[idx] && display.plane_2[idx]{
+            Color::RGB(191, 64, 191)
+        }
+        else if display.plane_2[idx]{
+            Color::RGB(255, 0, 0)
+        }
+        else if display.plane_1[idx]{
+            Color::RGB(0, 0, 255)
+        }
+        else{
+            Color::RGB(0, 0, 0)
+        }
+    }
+
+    fn get_display_copy(&self) -> Display{
         let display = self.chip8.display.lock().unwrap();
         *display
     }

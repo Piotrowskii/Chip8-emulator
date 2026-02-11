@@ -34,11 +34,40 @@ pub enum KeyPad{
 pub enum Mode{
     Chip8,
     SuperChip,
-    XoChip
+    XoChip,
+    Experimental
+}
+
+#[derive(PartialEq, Copy, Clone)]
+pub struct Display{
+    pub plane_1: [bool; DISPLAY_SIZE],
+    pub plane_2: [bool; DISPLAY_SIZE],
+    pub selected_plane: u8,
+}
+
+impl Display{
+    pub fn new() -> Display{
+        Display{
+            plane_1: [false; DISPLAY_SIZE],
+            plane_2: [false; DISPLAY_SIZE],
+            selected_plane: 1,
+        }
+    }
+    pub fn execute_scroll(&mut self, scroll_function: fn(display: &mut [bool;DISPLAY_SIZE], n: usize), n: usize){
+        match self.selected_plane {
+            1 => scroll_function(&mut self.plane_1, n),
+            2 => scroll_function(&mut self.plane_2, n),
+            3 => {
+                scroll_function(&mut self.plane_1, n);
+                scroll_function(&mut self.plane_2, n);
+            },
+            _ => {}
+        }
+    }
 }
 pub struct Chip8{
     pub state: Arc<Mutex<CpuState>>,
-    pub display: Arc<Mutex<[bool; DISPLAY_SIZE]>>,
+    pub display: Arc<Mutex<Display>>,
     pub running: Arc<AtomicBool>,
     pub keys: Arc<Mutex<[bool; 16]>>,
     pub hires_mode: Arc<AtomicBool>,
@@ -48,7 +77,7 @@ impl Chip8{
     pub fn new() -> Chip8{
         Chip8{
             state: Arc::new(Mutex::new(CpuState::default())),
-            display: Arc::new(Mutex::new([false; DISPLAY_SIZE])),
+            display: Arc::new(Mutex::new(Display::new())),
             running: Arc::new(AtomicBool::new(true)),
             keys: Arc::new(Mutex::new([false; 16])),
             hires_mode: Arc::new(AtomicBool::new(false)),
@@ -78,11 +107,15 @@ impl Chip8{
                 cpu.alt_FX55_FX65 = true;
             }
             Mode::SuperChip => {
-                cpu.alt_8XY6_8XYE = true;
-                cpu.alt_BNNN = true;
+                cpu.alt_FX55_FX65 = true;
+                cpu.alt_allow_scrolling = true;
             }
             Mode::XoChip => {
-                cpu.alt_8XY6_8XYE = true;
+                cpu.alt_allow_scrolling = true;
+            }
+            Mode::Experimental => {
+                cpu.alt_FX55_FX65 = false;
+                cpu.alt_allow_scrolling = true;
             }
         }
     }
@@ -144,7 +177,6 @@ impl Chip8{
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
                 let start = Instant::now();
-
                 {
                     let mut cpu_state = state.lock().unwrap();
                     let mut display = display.lock().unwrap();
@@ -161,7 +193,7 @@ impl Chip8{
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
-                thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed) ));
+                thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed)));
             }
         });
     }

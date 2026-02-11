@@ -1,6 +1,6 @@
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::chip8::chip_8::Mode;
+use crate::chip8::chip_8::{Display, Mode};
 use crate::chip8::cpu_state::CpuState;
 use crate::emulator::parameters::{DISPLAY_HEIGHT, DISPLAY_SIZE, DISPLAY_WIDTH, FONT_MEMORY_START};
 
@@ -41,6 +41,7 @@ pub enum Instruction {
     IDXY0{x: u8, y: u8},
     IEX9E{x: u8},
     IEXA1{x: u8},
+    IFN01{n: u8},
     IFX07{x: u8},
     IFX15{x: u8},
     IFX18{x: u8},
@@ -57,41 +58,58 @@ pub enum Instruction {
 
 
 impl Instruction {
-    pub fn execute(&self, cpu: &mut CpuState, display: &mut [bool; DISPLAY_SIZE], keys: &[bool; 16], hires_mode: &AtomicBool, is_running: &AtomicBool) {
-        println!("{}", self);
+    pub fn execute(&self, cpu: &mut CpuState, display: &mut Display, keys: &[bool; 16], hires_mode: &AtomicBool, is_running: &AtomicBool) {
+        //println!("{}", self);
 
         match *self {
             Instruction::I00BN {n}  | Instruction::I00DN {n} => {
                 let n = if hires_mode.load(Ordering::Relaxed) {n as usize} else {(n * 2) as usize};
 
-                for row in 0..DISPLAY_HEIGHT - n {
-                    for col in 0..DISPLAY_WIDTH {
-                        display[row * DISPLAY_WIDTH + col] = display[(row + n) * DISPLAY_WIDTH + col];
-                    }
-                }
+                display.execute_scroll(scroll_up, n);
 
-                for row in (DISPLAY_HEIGHT - n..DISPLAY_HEIGHT).rev() {
-                    for col in 0..DISPLAY_WIDTH {
-                        display[row * DISPLAY_WIDTH + col] = false;
+                fn scroll_up(display: &mut [bool;DISPLAY_SIZE], n: usize){
+                    for row in 0..DISPLAY_HEIGHT - n {
+                        for col in 0..DISPLAY_WIDTH {
+                            display[row * DISPLAY_WIDTH + col] = display[(row + n) * DISPLAY_WIDTH + col];
+                        }
+                    }
+
+                    for row in (DISPLAY_HEIGHT - n..DISPLAY_HEIGHT).rev() {
+                        for col in 0..DISPLAY_WIDTH {
+                            display[row * DISPLAY_WIDTH + col] = false;
+                        }
                     }
                 }
             }
             Instruction::I00CN {n} => {
                 let n = if hires_mode.load(Ordering::Relaxed) {n as usize} else {(n * 2) as usize};
 
-                for row in (0..(DISPLAY_HEIGHT - n)).rev() {
-                    for col in 0..DISPLAY_WIDTH {
-                        display[(row + n) * DISPLAY_WIDTH + col] = display[row * DISPLAY_WIDTH + col];
+                display.execute_scroll(scroll_down, n);
+                fn scroll_down(display: &mut [bool;DISPLAY_SIZE], n: usize){
+                    for row in (0..(DISPLAY_HEIGHT - n)).rev() {
+                        for col in 0..DISPLAY_WIDTH {
+                            display[(row + n) * DISPLAY_WIDTH + col] = display[row * DISPLAY_WIDTH + col];
+                        }
                     }
-                }
 
-                for row in 0..n {
-                    for col in 0..DISPLAY_WIDTH {
-                        display[row * DISPLAY_WIDTH + col] = false;
+                    for row in 0..n {
+                        for col in 0..DISPLAY_WIDTH {
+                            display[row * DISPLAY_WIDTH + col] = false;
+                        }
                     }
                 }
             }
-            Instruction::I00E0 => { display.fill(false) },
+            Instruction::I00E0 => {
+                match display.selected_plane {
+                    1 => display.plane_1.fill(false),
+                    2 => display.plane_2.fill(false),
+                    3 => {
+                        display.plane_1.fill(false);
+                        display.plane_2.fill(false);
+                    },
+                    _ => {}
+                }
+            },
             Instruction::I00EE => {
                 if let Some(from_stack) = cpu.stack.pop() {
                     cpu.pc = from_stack as usize;
@@ -102,30 +120,38 @@ impl Instruction {
             Instruction::I00FB => {
                 let n = if hires_mode.load(Ordering::Relaxed) {4} else {8};
 
-                for col in (0..DISPLAY_WIDTH - n).rev() {
-                    for row in 0..DISPLAY_HEIGHT {
-                        display[(col + n) + (DISPLAY_WIDTH * row)] = display[(col) + (DISPLAY_WIDTH * row)];
-                    }
-                }
+                display.execute_scroll(scroll_right, n);
 
-                for col in 0..n{
-                    for row in 0..DISPLAY_HEIGHT {
-                        display[row * DISPLAY_WIDTH + col] = false;
+                fn scroll_right(display: &mut [bool;DISPLAY_SIZE], n: usize) {
+                    for col in (0..DISPLAY_WIDTH - n).rev() {
+                        for row in 0..DISPLAY_HEIGHT {
+                            display[(col + n) + (DISPLAY_WIDTH * row)] = display[(col) + (DISPLAY_WIDTH * row)];
+                        }
+                    }
+
+                    for col in 0..n{
+                        for row in 0..DISPLAY_HEIGHT {
+                            display[row * DISPLAY_WIDTH + col] = false;
+                        }
                     }
                 }
             },
             Instruction::I00FC => {
                 let n = if hires_mode.load(Ordering::Relaxed) {4} else {8};
 
-                for col in (0 + n)..DISPLAY_WIDTH {
-                    for row in 0..DISPLAY_HEIGHT {
-                        display[(col - n) + (DISPLAY_WIDTH * row)] = display[(col) + (DISPLAY_WIDTH * row)];
-                    }
-                }
+                display.execute_scroll(scroll_right, n);
 
-                for col in DISPLAY_WIDTH - n..DISPLAY_WIDTH {
-                    for row in 0..DISPLAY_HEIGHT {
-                        display[row * DISPLAY_WIDTH + col] = false;
+                fn scroll_right(display: &mut [bool;DISPLAY_SIZE], n: usize) {
+                    for col in (0 + n)..DISPLAY_WIDTH {
+                        for row in 0..DISPLAY_HEIGHT {
+                            display[(col - n) + (DISPLAY_WIDTH * row)] = display[(col) + (DISPLAY_WIDTH * row)];
+                        }
+                    }
+
+                    for col in DISPLAY_WIDTH - n..DISPLAY_WIDTH {
+                        for row in 0..DISPLAY_HEIGHT {
+                            display[row * DISPLAY_WIDTH + col] = false;
+                        }
                     }
                 }
             },
@@ -212,90 +238,49 @@ impl Instruction {
                 cpu.registers[x as usize] = rand;
             }
             Instruction::IDXY0 {x,y} => {
-                if !hires_mode.load(Ordering::Relaxed) {return;}
-                let x = cpu.registers[x as usize] as usize % DISPLAY_WIDTH;
-                let y = cpu.registers[y as usize] as usize % DISPLAY_HEIGHT;
+                let scale: u8 = match hires_mode.load(Ordering::Relaxed){
+                    true => 1,
+                    false => 2,
+                };
+
+                let x = (cpu.registers[x as usize] as usize * (scale as usize)) % DISPLAY_WIDTH;
+                let y = (cpu.registers[y as usize] as usize * (scale as usize)) % DISPLAY_HEIGHT;
                 cpu.registers[0xF] = 0;
 
-                for row in 0..16u8 {
-                    let bytes: u16 = ((cpu.memory[cpu.i as usize + (row * 2) as usize] as u16) << 8) | (cpu.memory[cpu.i as usize + ((row * 2) + 1) as usize] as u16);
+                let mut bytes: u16 = 0;
+                for row in 0..16u8*scale {
+                    if row % scale == 0 {
+                        bytes = ((cpu.memory[cpu.i as usize + ((row/scale) * 2) as usize] as u16) << 8) | (cpu.memory[cpu.i as usize + (((row/scale) * 2)+ 1) as usize] as u16);
+                    }
 
-                    for col in 0..16u8 {
-                        let is_on = if (bytes >> (15 - col)) & 1 == 1 { true } else { false };
-                        let position = &mut display[(y + row as usize) * DISPLAY_WIDTH + (x + col as usize)];
-
-                        if is_on {
-                            if (*position) {
-                                *position = !*position;
-                                cpu.registers[0xF] = 1;
-                            } else {
-                                *position = true;
-                            }
-                        }
+                    for col in 0..16u8*scale {
+                        let is_on = if (bytes >> (15 - (col/scale))) & 1 == 1 { true } else { false };
+                        draw_pixel((x + col as usize ),(y + row as usize), is_on, cpu, &mut display.plane_1);
                     }
                 }
             }
             Instruction::IDXYN {x,y,n} => {
+                let scale: u8 = match hires_mode.load(Ordering::Relaxed){
+                    true => 1,
+                    false => 2,
+                };
+
+                let x = (cpu.registers[x as usize] as usize * (scale as usize)) % DISPLAY_WIDTH;
+                let y = (cpu.registers[y as usize] as usize * (scale as usize)) % DISPLAY_HEIGHT;
                 cpu.registers[0xF] = 0;
 
-                if hires_mode.load(Ordering::Relaxed){
-                    let x = cpu.registers[x as usize] as usize % DISPLAY_WIDTH;
-                    let y = cpu.registers[y as usize] as usize % DISPLAY_HEIGHT;
-
-                    for row in 0..n {
-                        let byte = cpu.memory[cpu.i as usize + row as usize];
-
-                        for col in 0..8u8 {
-                            let is_on = if (byte >> (7 - col)) & 1 == 1 { true } else { false };
-
-                            //Clipping Logic
-                            if y + row as usize >= DISPLAY_HEIGHT { continue; }
-                            if x + col as usize >= DISPLAY_WIDTH { continue; }
-                            //Clipping Logic
-
-                            let position = &mut display[(y + row as usize) * DISPLAY_WIDTH + (x + col as usize)];;
-
-                            if is_on {
-                                if (*position) {
-                                    *position = !*position;
-                                    cpu.registers[0xF] = 1;
-                                } else {
-                                    *position = true;
-                                }
-                            }
-                        }
+                let mut byte: u8 = 0;
+                for row in 0..n*scale {
+                    if row % scale == 0 {
+                        byte = cpu.memory[cpu.i as usize + (row/scale) as usize];
                     }
-                }else{
-                    let x = (cpu.registers[x as usize] as usize * 2) % DISPLAY_WIDTH;
-                    let y = (cpu.registers[y as usize] as usize * 2) % DISPLAY_HEIGHT;
 
-                    let mut byte = cpu.memory[cpu.i as usize];
-                    for row in 0..(n*2) {
-                        if row % 2 == 0 {byte = cpu.memory[cpu.i as usize + (row/2)  as usize];}
+                    for col in 0..8u8*scale {
+                        let is_on = if (byte >> (7 - (col/scale))) & 1 == 1 { true } else { false };
 
-                        for col in 0..16u8 {
-                            let is_on = if (byte >> (7 - (col/2))) & 1 == 1 { true } else { false };
-
-                            //Clipping Logic
-                            if y + row as usize >= DISPLAY_HEIGHT { continue; }
-                            if x + col as usize >= DISPLAY_WIDTH { continue; }
-                            //Clipping Logic
-
-                            let position = &mut display[(y + row as usize) * DISPLAY_WIDTH + (x + col as usize)];
-
-                            if is_on {
-                                if (*position) {
-                                    *position = !*position;
-                                    cpu.registers[0xF] = 1;
-                                } else {
-                                    *position = true;
-                                }
-                            }
-                        }
+                        draw_pixel((x + col as usize ),(y + row as usize), is_on, cpu, &mut display.plane_1);
                     }
                 }
-
-
             }
             Instruction::IEX9E {x} => {
                 if keys[cpu.registers[x as usize] as usize] {
@@ -306,6 +291,9 @@ impl Instruction {
                 if !keys[cpu.registers[x as usize] as usize] {
                     cpu.pc += 2;
                 }
+            }
+            Instruction::IFN01 {n} => {
+                display.selected_plane = n;
             }
             Instruction::IFX07 {x} => { cpu.registers[x as usize] = cpu.delay_timer }
             Instruction::IFX0A {x} => {
@@ -347,9 +335,9 @@ impl Instruction {
                     }
                 } else {
                     for i in 0..=x as usize {
-                        cpu.memory[cpu.i as usize] = cpu.registers[i];
-                        cpu.i += 1;
+                        cpu.memory[cpu.i as usize + i] = cpu.registers[i];
                     }
+                    cpu.i += x as u16 + 1;
                 }
             }
             Instruction::IFX65 {x} => {
@@ -359,9 +347,9 @@ impl Instruction {
                     }
                 } else {
                     for i in 0..=x as usize {
-                        cpu.registers[i] = cpu.memory[cpu.i as usize];
-                        cpu.i += 1;
+                        cpu.registers[i] = cpu.memory[cpu.i as usize + i];
                     }
+                    cpu.i += x as u16 + 1;
                 }
             }
             Instruction::IFX75{x} => {
@@ -375,10 +363,27 @@ impl Instruction {
                 }
             }
         }
-    }
 
-    pub fn display(&self, mode: Mode){
+        fn draw_pixel(x: usize, y: usize, is_on:bool, cpu: &mut CpuState, display: &mut [bool; DISPLAY_SIZE]) {
 
+            //Clipping Logic
+            if !cpu.alt_allow_scrolling{
+                if y as usize >= DISPLAY_HEIGHT { return; }
+                if x  as usize >= DISPLAY_WIDTH { return; }
+            }
+            //Clipping Logic
+
+            let position = &mut display[(y as usize % DISPLAY_HEIGHT) * DISPLAY_WIDTH + (x as usize) % DISPLAY_WIDTH];
+
+            if is_on {
+                if (*position) {
+                    *position = !*position;
+                    cpu.registers[0xF] = 1;
+                } else {
+                    *position = true;
+                }
+            }
+        }
     }
 }
 
@@ -420,13 +425,14 @@ impl fmt::Display for Instruction {
             Instruction::IDXY0 {x,y} => {write!(f, "DXY0: Display x: {} y:{}",x,y)}
             Instruction::IEX9E {x} => {write!(f, "EX9E: PC += 2 if key == V{}",x)}
             Instruction::IEXA1 {x} => {write!(f, "EXA1: PC += 2 if key != V{}",x)}
+            Instruction::IFN01 {n} => {write!(f, "IFN01: Changing plane to {}",n)}
             Instruction::IFX07 {x} => {write!(f, "FX07: V{} = delay timer",x)}
             Instruction::IFX15 {x} => {write!(f, "FX15: Delay timer = V{}",x)}
             Instruction::IFX18 {x} => {write!(f, "FX18: Sound timer = V{}",x)}
             Instruction::IFX1E {x} => {write!(f, "FX1E: I += V{}",x)}
             Instruction::IFX0A {x} => {write!(f, "FX0A: Wait for key, V{} = key",x)}
-            Instruction::IFX29 {x} => {write!(f, "FX29: I = font character {}",x)}
-            Instruction::IFX30 {x} => {write!(f, "FX30: I = big font character {}", x)}
+            Instruction::IFX29 {x} => {write!(f, "FX29: I = font character V{}",x)}
+            Instruction::IFX30 {x} => {write!(f, "FX30: I = big font character V{}", x)}
             Instruction::IFX33 {x} => {write!(f, "FX33: mem[i..i+2] = 1,2,3 (np. V{} = 123)",x)}
             Instruction::IFX55 {x} => {write!(f, "FX55: mem[i..i+x] = V0..={}  ",x)}
             Instruction::IFX65 {x} => {write!(f, "FX65:  V0..={} = mem[i..i+x] ",x)}

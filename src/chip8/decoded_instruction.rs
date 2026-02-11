@@ -1,6 +1,7 @@
 use crate::chip8::instructions::Instruction;
 use crate::emulator::parameters::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
 
+#[derive(Debug)]
 pub struct DecodedInstruction{
     pub opcode: u8,
     pub x: u8,
@@ -50,6 +51,7 @@ impl DecodedInstruction {
             DecodedInstruction {opcode: 0xD, x, y, n, ..} => Some(Instruction::IDXYN {x,y,n}),
             DecodedInstruction {opcode: 0xE, y: 0x9, n: 0xE, x, ..} => Some(Instruction::IEX9E {x}),
             DecodedInstruction {opcode: 0xE, y: 0xA, n: 0x1, x, ..} => Some(Instruction::IEXA1 {x}),
+            DecodedInstruction {opcode: 0xF, y: 0x0, n: 0x1, x, ..} => Some(Instruction::IFN01 {n:x}),
             DecodedInstruction {opcode: 0xF, y: 0x0, n: 0x7, x, ..} => Some(Instruction::IFX07 {x}),
             DecodedInstruction {opcode: 0xF, y: 0x0, n: 0xA, x, ..} => Some(Instruction::IFX0A {x}),
             DecodedInstruction {opcode: 0xF, y: 0x1, n: 0x5, x, ..} => Some(Instruction::IFX15 {x}),
@@ -62,7 +64,10 @@ impl DecodedInstruction {
             DecodedInstruction {opcode: 0xF, y: 0x6, n: 0x5, x, ..} => Some(Instruction::IFX65 {x}),
             DecodedInstruction {opcode: 0xF, y: 0x7, n: 0x5, x, ..} => Some(Instruction::IFX75 {x}),
             DecodedInstruction {opcode: 0xF, y: 0x8, n: 0x5, x, ..} => Some(Instruction::IFX85 {x}),
-            _ => None
+            _ => {
+                println!("{:?} Instruction not found", self);
+                None
+            }
         }
     }
 }
