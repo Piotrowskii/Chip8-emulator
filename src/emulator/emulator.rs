@@ -68,7 +68,6 @@ impl Emulator{
             self.canvas.clear();
             self.draw_screen();
             self.make_sounds();
-            self.canvas.present();
 
             let elapsed = start.elapsed().as_nanos() as u64;
             thread::sleep(Duration::from_nanos(16_666_667u64.saturating_sub(elapsed) ));
@@ -106,16 +105,16 @@ impl Emulator{
 
     fn get_pixel_color(display: &Display, idx: usize) -> Color{
         if display.plane_1[idx] && display.plane_2[idx]{
-            Color::RGB(191, 64, 191)
+            Color::RGB(238, 238, 255)
         }
         else if display.plane_2[idx]{
-            Color::RGB(255, 0, 0)
+            Color::RGB(69, 101, 67)
         }
         else if display.plane_1[idx]{
-            Color::RGB(0, 0, 255)
+            Color::RGB(85, 68, 34)
         }
         else{
-            Color::RGB(0, 0, 0)
+            Color::RGB(135, 206, 235)
         }
     }
 

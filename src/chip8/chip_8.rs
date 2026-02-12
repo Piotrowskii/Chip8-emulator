@@ -53,15 +53,18 @@ impl Display{
             selected_plane: 1,
         }
     }
+    pub fn get_selected_planes(&mut self) -> Vec<&mut [bool; DISPLAY_SIZE]>{
+        match self.selected_plane{
+            0b00000001 => vec![&mut self.plane_1],
+            0b00000010 => vec![&mut self.plane_2],
+            0b00000011 => vec![&mut self.plane_1, &mut self.plane_2],
+            _ => vec![]
+        }
+    }
+
     pub fn execute_scroll(&mut self, scroll_function: fn(display: &mut [bool;DISPLAY_SIZE], n: usize), n: usize){
-        match self.selected_plane {
-            1 => scroll_function(&mut self.plane_1, n),
-            2 => scroll_function(&mut self.plane_2, n),
-            3 => {
-                scroll_function(&mut self.plane_1, n);
-                scroll_function(&mut self.plane_2, n);
-            },
-            _ => {}
+        for plane in self.get_selected_planes(){
+            scroll_function(plane,n);
         }
     }
 }
@@ -111,7 +114,7 @@ impl Chip8{
                 cpu.alt_allow_scrolling = true;
             }
             Mode::XoChip => {
-                cpu.alt_allow_scrolling = true;
+                cpu.alt_allow_scrolling = false;
             }
             Mode::Experimental => {
                 cpu.alt_FX55_FX65 = false;
@@ -167,13 +170,14 @@ impl Chip8{
     }
 
     //700 Hz
+    //TODO - fix mutex borrowing
     fn start_execution_thread(&mut self) {
         let display = Arc::clone(&self.display);
         let state = Arc::clone(&self.state);
         let running = Arc::clone(&self.running);
         let keys = Arc::clone(&self.keys);
         let hires_mode = Arc::clone(&self.hires_mode);
-        
+
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
                 let start = Instant::now();
@@ -182,18 +186,14 @@ impl Chip8{
                     let mut display = display.lock().unwrap();
                     let keys = keys.lock().unwrap();
 
-                    let raw_instruction = {
-                        Self::fetch(&mut cpu_state)
-                    };
-    
-                    if let Some(instruction) = Self::decode(raw_instruction){
+                    if let Some(instruction) = cpu_state.get_current_instruction(true){
                         instruction.execute(&mut cpu_state, &mut display, &keys, hires_mode.as_ref(), running.as_ref());
                     }
 
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
-                thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed)));
+                thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed))); //1_430_000u64
             }
         });
     }
@@ -202,33 +202,6 @@ impl Chip8{
         let mut keys = self.keys.lock().unwrap();
         keys[pressed_key as usize] = pressed;
     }
-    
-
-    pub fn fetch(cpu_state: &mut CpuState) -> u16{
-        let pc = cpu_state.pc;
-
-        let instruction: u16 = ((cpu_state.memory[pc] as u16) << 8) | (cpu_state.memory[pc+1] as u16);
-
-        cpu_state.pc += 2;
-        instruction
-    }
-
-    pub fn decode(instruction: u16) -> Option<Instruction>{
-
-        //0xF000 - masks for bits, I want
-        
-        let opcode = ((instruction & 0xF000) >> 12) as u8;
-        let x = ((instruction & 0x0F00) >> 8) as u8;
-        let y = ((instruction & 0x00F0) >> 4) as u8;
-        let n = (instruction & 0x000F) as u8;
-        let nn = (instruction & 0x00FF) as u8;
-        let nnn = instruction & 0x0FFF;
-
-        let di = DecodedInstruction{ opcode,x,y,n,nn,nnn };
-
-        di.to_instruction()
-    }
-
 
 }
 

@@ -1,3 +1,6 @@
+use crate::chip8::decoded_instruction::DecodedInstruction;
+use crate::chip8::instructions::Instruction;
+
 pub struct CpuState {
     //pub memory: [u8; 4096],
     pub memory: [u8; 65_536],
@@ -8,6 +11,8 @@ pub struct CpuState {
     pub rpl_flags: [u8; 8],
     pub delay_timer: u8,
     pub sound_timer: u8,
+    pub sound_pattern_buffer: [u8; 16],
+    pub pitch_register: u8,
     pub alt_8XY6_8XYE: bool, 
     pub alt_BNNN: bool,
     pub alt_FX55_FX65: bool,
@@ -25,6 +30,8 @@ impl Default for CpuState {
             stack: vec![],
             delay_timer: 0,
             sound_timer: 0,
+            sound_pattern_buffer: [0; 16],
+            pitch_register: 64, //64 = 4000 HZ, 4000*2^((vx-64)/48)
             registers: [0; 16],
             rpl_flags: [0; 8],
             alt_8XY6_8XYE: false,
@@ -33,6 +40,52 @@ impl Default for CpuState {
             alt_8XY123: false,
             alt_IFX1E: false,
             alt_allow_scrolling: false,
+        }
+    }
+}
+
+
+impl CpuState{
+    pub fn fetch(&mut self) -> u16{
+        let pc = self.pc;
+
+        let instruction: u16 = ((self.memory[pc] as u16) << 8) | (self.memory[pc+1] as u16);
+
+        instruction
+    }
+    pub fn decode(instruction: u16) -> Option<Instruction>{
+
+        //0xF000 - masks for bits, I want
+
+        let opcode = ((instruction & 0xF000) >> 12) as u8;
+        let x = ((instruction & 0x0F00) >> 8) as u8;
+        let y = ((instruction & 0x00F0) >> 4) as u8;
+        let n = (instruction & 0x000F) as u8;
+        let nn = (instruction & 0x00FF) as u8;
+        let nnn = instruction & 0x0FFF;
+
+        let di = DecodedInstruction{ opcode,x,y,n,nn,nnn };
+
+        di.to_instruction()
+    }
+
+    pub fn get_current_instruction(&mut self, increment_pc: bool) -> Option<Instruction> {
+        let instruction = self.fetch();
+        if increment_pc{
+            self.pc += 2;
+        }
+        Self::decode(instruction)
+    }
+
+    pub fn skip_instruction(&mut self) {
+        if let Some(instruction) = self.get_current_instruction(false) {
+            match instruction{
+                Instruction::IF000 => self.pc += 4,
+                _ => self.pc +=2
+            }
+        }
+        else{
+            println!("Error skipping instruction");
         }
     }
 }
