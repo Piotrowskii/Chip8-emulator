@@ -55,9 +55,9 @@ impl Display{
     }
     pub fn get_selected_planes(&mut self) -> Vec<&mut [bool; DISPLAY_SIZE]>{
         match self.selected_plane{
-            0b00000001 => vec![&mut self.plane_1],
-            0b00000010 => vec![&mut self.plane_2],
-            0b00000011 => vec![&mut self.plane_1, &mut self.plane_2],
+            1 => vec![&mut self.plane_1],
+            2 => vec![&mut self.plane_2],
+            3 => vec![&mut self.plane_1, &mut self.plane_2],
             _ => vec![]
         }
     }
@@ -170,7 +170,7 @@ impl Chip8{
     }
 
     //700 Hz
-    //TODO - fix mutex borrowing
+    //TODO - fix mutex borrowing (speed)
     fn start_execution_thread(&mut self) {
         let display = Arc::clone(&self.display);
         let state = Arc::clone(&self.state);
@@ -193,7 +193,7 @@ impl Chip8{
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
-                thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed))); //1_430_000u64
+                //thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed)));
             }
         });
     }
