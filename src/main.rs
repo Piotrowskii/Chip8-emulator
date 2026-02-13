@@ -12,12 +12,12 @@ use crate::emulator::emulator::Emulator;
 
 pub fn main() -> Result<(), String> {
     let files = FileDialog::new()
-        .add_filter("rom", &["ch8", "schip"])
+        .add_filter("rom", &["ch8", "schip", "xo8"])
         .set_directory("/")
         .pick_file();
 
     if let Some(file) = files {
-        let chip8 = Chip8::get_new_and_start(file, Mode::SuperChip);
+        let chip8 = Chip8::get_new_and_start(file, Mode::XoChip);
         let mut emulator = Emulator::new(chip8);
         emulator.run();
     }

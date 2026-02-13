@@ -164,13 +164,11 @@ impl Chip8{
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
-                thread::sleep(Duration::from_nanos(16_666_667u64.saturating_sub(elapsed) ));
+                thread::sleep(Duration::from_nanos(HZ.saturating_sub(elapsed)));
             }
         });
     }
-
-    //700 Hz
-    //TODO - fix mutex borrowing (speed)
+    
     fn start_execution_thread(&mut self) {
         let display = Arc::clone(&self.display);
         let state = Arc::clone(&self.state);
@@ -181,19 +179,22 @@ impl Chip8{
         thread::spawn(move || {
             while running.load(Ordering::Relaxed) {
                 let start = Instant::now();
+                let mut num = 0;
                 {
                     let mut cpu_state = state.lock().unwrap();
                     let mut display = display.lock().unwrap();
-                    let keys = keys.lock().unwrap();
+                    let mut keys = keys.lock().unwrap();
 
-                    if let Some(instruction) = cpu_state.get_current_instruction(true){
-                        instruction.execute(&mut cpu_state, &mut display, &keys, hires_mode.as_ref(), running.as_ref());
+                    for i in 0..IPF{
+                        if let Some(instruction) = cpu_state.get_current_instruction(true){
+                            instruction.execute(&mut cpu_state, &mut display, &keys, hires_mode.as_ref(), running.as_ref());
+                        }
+                        num += 1;
                     }
-
                 }
 
                 let elapsed = start.elapsed().as_nanos() as u64;
-                //thread::sleep(Duration::from_nanos(1_430_000u64.saturating_sub(elapsed)));
+                thread::sleep(Duration::from_nanos(HZ.saturating_sub(elapsed))); 
             }
         });
     }

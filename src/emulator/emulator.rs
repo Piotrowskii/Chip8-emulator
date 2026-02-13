@@ -70,7 +70,7 @@ impl Emulator{
             self.make_sounds();
 
             let elapsed = start.elapsed().as_nanos() as u64;
-            thread::sleep(Duration::from_nanos(16_666_667u64.saturating_sub(elapsed) ));
+            thread::sleep(Duration::from_nanos(HZ.saturating_sub(elapsed) ));
         }
     }
 

@@ -2,7 +2,6 @@ use crate::chip8::decoded_instruction::DecodedInstruction;
 use crate::chip8::instructions::Instruction;
 
 pub struct CpuState {
-    //pub memory: [u8; 4096],
     pub memory: [u8; 65_536],
     pub pc: usize,
     pub i: u16,
@@ -13,6 +12,7 @@ pub struct CpuState {
     pub sound_timer: u8,
     pub sound_pattern_buffer: [u8; 16],
     pub pitch_register: u8,
+    pub awaiting_key: Option<usize>,
     pub alt_8XY6_8XYE: bool, 
     pub alt_BNNN: bool,
     pub alt_FX55_FX65: bool,
@@ -34,6 +34,7 @@ impl Default for CpuState {
             pitch_register: 64, //64 = 4000 HZ, 4000*2^((vx-64)/48)
             registers: [0; 16],
             rpl_flags: [0; 8],
+            awaiting_key: None,
             alt_8XY6_8XYE: false,
             alt_BNNN: false,
             alt_FX55_FX65: false,

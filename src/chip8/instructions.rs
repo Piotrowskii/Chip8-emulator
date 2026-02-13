@@ -311,12 +311,12 @@ impl Instruction {
                 }
             }
             Instruction::IEX9E {x} => {
-                if keys[(cpu.registers[x as usize] as usize) & 0xF] {
+                if keys[(cpu.registers[x as usize] as usize) & 0x0F] {
                     cpu.skip_instruction();
                 }
             }
             Instruction::IEXA1 {x} => {
-                if !keys[(cpu.registers[x as usize] as usize) & 0xF] {
+                if !keys[(cpu.registers[x as usize] as usize) & 0x0F] {
                     cpu.skip_instruction();
                 }
             }
@@ -337,11 +337,19 @@ impl Instruction {
             Instruction::IFX07 {x} => { cpu.registers[x as usize] = cpu.delay_timer }
             Instruction::IFX0A {x} => {
                 let pressed_key = keys.iter().position(|&pressed| pressed);
-                if let Some(pressed_key) = pressed_key {
-                    cpu.registers[x as usize] = pressed_key as u8;
-                } else {
-                    cpu.pc -= 2;
+
+                if let Some(awaiting_key) = cpu.awaiting_key{
+                    if keys[awaiting_key] == false {
+                        cpu.registers[x as usize] = awaiting_key as u8;
+                        cpu.awaiting_key = None;
+                        cpu.pc +=2;
+                    }
                 }
+                else if let Some(pressed_key) = pressed_key{
+                    cpu.awaiting_key = Some(pressed_key);
+                }
+
+                cpu.pc -=2;
             }
             Instruction::IFX15 {x} => { cpu.delay_timer = cpu.registers[x as usize] }
             Instruction::IFX18 {x} => { cpu.sound_timer = cpu.registers[x as usize] }
@@ -371,26 +379,20 @@ impl Instruction {
                 cpu.pitch_register = cpu.registers[x as usize];
             }
             Instruction::IFX55 {x} => {
-                if !cpu.alt_FX55_FX65 {
-                    for i in 0..=x as usize {
-                        cpu.memory[cpu.i as usize + i] = cpu.registers[i];
-                    }
-                } else {
-                    for i in 0..=x as usize {
-                        cpu.memory[cpu.i as usize + i] = cpu.registers[i];
-                    }
+                for i in 0..=x as usize {
+                    cpu.memory[cpu.i as usize + i] = cpu.registers[i];
+                }
+
+                if cpu.alt_FX55_FX65{
                     cpu.i += x as u16 + 1;
                 }
             }
             Instruction::IFX65 {x} => {
-                if !cpu.alt_FX55_FX65 {
-                    for i in 0..=x as usize {
-                        cpu.registers[i] = cpu.memory[cpu.i as usize + i];
-                    }
-                } else {
-                    for i in 0..=x as usize {
-                        cpu.registers[i] = cpu.memory[cpu.i as usize + i];
-                    }
+                for i in 0..=x as usize {
+                    cpu.registers[i] = cpu.memory[cpu.i as usize + i];
+                }
+
+                if cpu.alt_FX55_FX65{
                     cpu.i += x as u16 + 1;
                 }
             }
