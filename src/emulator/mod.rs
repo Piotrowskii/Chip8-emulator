@@ -1,3 +1,3 @@
 pub mod emulator;
 pub mod square_wave;
-pub mod parameters;
+pub mod pattern_wave;

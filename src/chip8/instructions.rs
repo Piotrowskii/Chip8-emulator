@@ -1,8 +1,8 @@
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::chip8::chip_8::{Display, Mode};
 use crate::chip8::cpu_state::CpuState;
-use crate::emulator::parameters::{DISPLAY_HEIGHT, DISPLAY_SIZE, DISPLAY_WIDTH, FONT_MEMORY_START};
+use crate::chip8::display::Display;
+use crate::chip8::parameters::{DISPLAY_HEIGHT, DISPLAY_SIZE, DISPLAY_WIDTH, FONT_MEMORY_START};
 
 #[derive(Debug)]
 pub enum Instruction {
@@ -64,8 +64,6 @@ pub enum Instruction {
 
 impl Instruction {
     pub fn execute(&self, cpu: &mut CpuState, display: &mut Display, keys: &[bool; 16], hires_mode: &AtomicBool, is_running: &AtomicBool) {
-        //println!("{}", self);
-
         match *self {
             Instruction::I00BN {n}  | Instruction::I00DN {n} => {
                 let n = if hires_mode.load(Ordering::Relaxed) {n as usize} else {(n * 2) as usize};
@@ -155,8 +153,16 @@ impl Instruction {
                 }
             },
             Instruction::I00FD | Instruction::I0000 => { is_running.store(false, Ordering::Relaxed)},
-            Instruction::I00FE => { hires_mode.store(false, Ordering::Relaxed)}
-            Instruction::I00FF => { hires_mode.store(true, Ordering::Relaxed)}
+            Instruction::I00FE => {
+                hires_mode.store(false, Ordering::Relaxed);
+                display.plane_1.fill(false);
+                display.plane_2.fill(false);
+            }
+            Instruction::I00FF => {
+                hires_mode.store(true, Ordering::Relaxed);
+                display.plane_1.fill(false);
+                display.plane_2.fill(false);
+            }
             Instruction::I1NNN {nnn} => { cpu.pc = nnn as usize; },
             Instruction::I2NNN {nnn} => {
                 cpu.stack.push(cpu.pc as u16);
@@ -195,8 +201,8 @@ impl Instruction {
             }
             Instruction::I6XNN {x, nn} => { cpu.registers[x as usize] = nn }
             Instruction::I7XNN {x, nn} => {
-                let (result, borrow) = cpu.registers[x as usize].overflowing_add(nn);
-
+                let (result, _) = cpu.registers[x as usize].overflowing_add(nn);
+                
                 cpu.registers[x as usize] = result;
             }
             Instruction::I8XY0 {x,y} => {
@@ -470,9 +476,9 @@ impl fmt::Display for Instruction {
             Instruction::IDXY0 {x,y} => {write!(f, "DXY0: Display x: {} y:{}",x,y)}
             Instruction::IEX9E {x} => {write!(f, "EX9E: PC += 2 if key == V{}",x)}
             Instruction::IEXA1 {x} => {write!(f, "EXA1: PC += 2 if key != V{}",x)}
-            Instruction::IF000 => {write!(f, "IF000: i = nnnn")}
-            Instruction::IFN01 {n} => {write!(f, "IFN01: Changing plane to {}",n)}
-            Instruction::IF002 => {write!(f, "IF002: audio_buffer[1..16] = memory[i..i+15]")}
+            Instruction::IF000 => {write!(f, "F000: i = nnnn")}
+            Instruction::IFN01 {n} => {write!(f, "FN01: Changing plane to {}",n)}
+            Instruction::IF002 => {write!(f, "F002: audio_buffer[1..16] = memory[i..i+15]")}
             Instruction::IFX07 {x} => {write!(f, "FX07: V{} = delay timer",x)}
             Instruction::IFX15 {x} => {write!(f, "FX15: Delay timer = V{}",x)}
             Instruction::IFX18 {x} => {write!(f, "FX18: Sound timer = V{}",x)}

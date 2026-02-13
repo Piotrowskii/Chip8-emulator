@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::thread;
 use sdl2::render::WindowCanvas;
@@ -6,10 +8,12 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use crate::chip8::chip_8::{Chip8, Display, KeyPad};
+use crate::chip8::chip_8::{Chip8, KeyPad, Mode};
 use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use std::time::{Duration, Instant};
-use crate::emulator::parameters::*;
+use crate::chip8::display::Display;
+use crate::chip8::parameters::*;
+use crate::emulator::pattern_wave::PatternWave;
 use crate::emulator::square_wave::SquareWave;
 
 extern crate sdl2;
@@ -19,12 +23,15 @@ pub struct Emulator {
     canvas: WindowCanvas,
     event_pump: EventPump,
     chip8: Chip8,
-    audio_device: Option<AudioDevice<SquareWave>>,
+    current_game: PathBuf,
+    fps: u16,
+    fps_ns: u64,
+    audio_device: Option<AudioDevice<PatternWave>>,
     playing_sounds: bool,
 }
 
 impl Emulator{
-    pub fn new(chip8: Chip8) -> Emulator {
+    pub fn new(file: PathBuf) -> Emulator {
         let mut sdl_context = sdl2::init().expect("SDL initialization failed");
         let video_subsystem = sdl_context.video().expect("SDL initialization failed");
 
@@ -41,12 +48,20 @@ impl Emulator{
 
         let audio_device = Self::get_audio_device(&mut sdl_context);
 
+        let fps = 60;
+        let fps_ns = Self::get_ns_from_fps(fps);
+
+        let chip8 = Chip8::get_new_and_start(&file, Mode::Chip8);
+
         Emulator{
             context: sdl_context,
             canvas,
             event_pump,
             chip8,
+            current_game: file,
             playing_sounds: false,
+            fps_ns,
+            fps,
             audio_device
         }
     }
@@ -61,6 +76,14 @@ impl Emulator{
                 match event {
                     Event::Quit {..} |
                     Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
+                    Event::KeyUp { keycode: Some(Keycode::Kp4), .. } => self.increase_ipf(100),
+                    Event::KeyUp { keycode: Some(Keycode::Kp1), .. } => self.decrease_ipf(100),
+                    Event::KeyUp { keycode: Some(Keycode::Kp6), .. } => self.increase_fps(10),
+                    Event::KeyUp { keycode: Some(Keycode::Kp3), .. } => self.decrease_fps(10),
+                    Event::KeyUp { keycode: Some(Keycode::Kp5), .. } => self.restart_chip8(),
+                    Event::KeyUp { keycode: Some(Keycode::Kp7), .. } => self.change_compatibility_mode(Mode::Chip8),
+                    Event::KeyUp { keycode: Some(Keycode::Kp8), .. } => self.change_compatibility_mode(Mode::SuperChip),
+                    Event::KeyUp { keycode: Some(Keycode::Kp9), .. } => self.change_compatibility_mode(Mode::XoChip),
                     _ => self.handle_keypad_presses(&event),
                 }
             }
@@ -70,7 +93,7 @@ impl Emulator{
             self.make_sounds();
 
             let elapsed = start.elapsed().as_nanos() as u64;
-            thread::sleep(Duration::from_nanos(HZ.saturating_sub(elapsed) ));
+            thread::sleep(Duration::from_nanos(self.fps_ns.saturating_sub(elapsed) ));
         }
     }
 
@@ -123,7 +146,46 @@ impl Emulator{
         *display
     }
 
-    pub fn get_audio_device(context: &mut Sdl) -> Option<AudioDevice<SquareWave>>{
+    fn increase_ipf(&mut self, value: u32){
+        let value = self.chip8.ipf.load(Ordering::Relaxed) + value;
+        self.chip8.ipf.store(value, Ordering::Relaxed);
+        println!("IPF increased to {}", value);
+    }
+    fn decrease_ipf(&mut self, value: u32){
+        let value = self.chip8.ipf.load(Ordering::Relaxed) - value;
+        self.chip8.ipf.store(value, Ordering::Relaxed);
+        println!("IPF decreased to {}", value);
+    }
+    fn increase_fps(&mut self, additional_fps: u16){
+        self.fps += additional_fps;
+        self.fps_ns = Self::get_ns_from_fps(self.fps);
+        self.chip8.fps_ns.store(self.fps_ns, Ordering::Relaxed);
+        println!("FPS increased to {}", self.fps);
+    }
+    fn decrease_fps(&mut self, additional_fps: u16){
+        self.fps -= additional_fps;
+        self.fps_ns = Self::get_ns_from_fps(self.fps);
+        self.chip8.fps_ns.store(self.fps_ns, Ordering::Relaxed);
+        println!("FPS decreased to {}", self.fps);
+    }
+    fn get_ns_from_fps(value: u16) -> u64{
+        1_000_000_000 / value as u64
+    }
+    fn restart_chip8(&mut self){
+        let compatibility = {
+            let lock = self.chip8.compatibility_mode.lock().unwrap();
+            *lock
+        };
+        self.chip8.running.store(false, Ordering::Relaxed);
+        self.chip8 = Chip8::get_new_and_start(&self.current_game, compatibility);
+    }
+
+    fn change_compatibility_mode(&mut self, compatibility_mode: Mode){
+        self.chip8.set_compatibility_mode(&compatibility_mode);
+        println!("Compatibility mode changed to {:?}", compatibility_mode);
+    }
+
+    fn get_audio_device(context: &mut Sdl) -> Option<AudioDevice<PatternWave>>{
         let audio_subsystem = context.audio().ok()?;
 
         let desired_spec = AudioSpecDesired {
@@ -133,30 +195,49 @@ impl Emulator{
         };
 
         let device = audio_subsystem.open_playback(None, &desired_spec, |spec| {
-            // initialize the audio callback
-            SquareWave {
-                phase_inc: 440.0 / spec.freq as f32,
+            PatternWave {
                 phase: 0.0,
-                volume: 0.05
+                phase_inc: 0.0,
+                volume: 0.05,
+                pattern: [0; 16],
+                pitch_register: 64,
             }
         }).ok()?;
         Some(device)
     }
 
-    fn make_sounds(&mut self){
-        if let Some(device) = &self.audio_device{
-            let sound_timer = self.chip8.state.lock().unwrap().sound_timer;
+    //TODO: Make it depended on emulator mode Chip8 and SuerChip need SquareWave
+    fn make_sounds(&mut self) {
+        if let Some(device) = self.audio_device.as_mut() {
 
-            if !self.playing_sounds && sound_timer > 0{
+            let (sound_timer, sound_pattern_buffer, pitch_register) = {
+                let state = self.chip8.state.lock().unwrap();
+                (state.sound_timer, state.sound_pattern_buffer, state.pitch_register)
+            };
+
+            if sound_timer > 0 {
+                {
+                    let mut lock = device.lock();
+                    lock.pattern.copy_from_slice(&sound_pattern_buffer);
+                    lock.pitch_register = pitch_register;
+                    lock.update_pitch(44_100.0);
+
+                    if !self.playing_sounds {
+                        lock.phase = 0.0;
+                    }
+                }
+            }
+
+            if sound_timer > 0 && !self.playing_sounds {
                 device.resume();
                 self.playing_sounds = true;
-            }
-            else if sound_timer == 0 && self.playing_sounds{
+            } else if sound_timer == 0 && self.playing_sounds {
                 device.pause();
                 self.playing_sounds = false;
             }
         }
     }
+
 
     fn handle_keypad_presses(&mut self, event: &Event){
         match event{

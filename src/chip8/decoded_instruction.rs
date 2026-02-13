@@ -1,6 +1,4 @@
 use crate::chip8::instructions::Instruction;
-use crate::emulator::parameters::{DISPLAY_HEIGHT, DISPLAY_WIDTH};
-
 #[derive(Debug)]
 pub struct DecodedInstruction{
     pub opcode: u8,

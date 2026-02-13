@@ -1,11 +1,7 @@
-use sdl2::pixels::Color;
-
 pub const DISPLAY_WIDTH: usize = 128;
 pub const DISPLAY_HEIGHT: usize = 64;
 pub const DISPLAY_SIZE: usize = DISPLAY_WIDTH * DISPLAY_HEIGHT;
 pub const PIXEL_SIZE: u32 = 8;
-pub const HZ: u64 = 6_060_606; //165Hz
-pub const IPF: u64 = 100;
 pub const FONT_DATA: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1

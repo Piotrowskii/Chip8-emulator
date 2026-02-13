@@ -1,3 +1,4 @@
+use crate::chip8::chip_8::Mode;
 use crate::chip8::decoded_instruction::DecodedInstruction;
 use crate::chip8::instructions::Instruction;
 
@@ -47,6 +48,28 @@ impl Default for CpuState {
 
 
 impl CpuState{
+    pub fn set_compatibility_mode(&mut self, mode: &Mode){
+        match mode {
+            Mode::Chip8 => {
+                self.alt_8XY123 = true;
+                self.alt_FX55_FX65 = true;
+            }
+            Mode::SuperChip => {
+                self.alt_allow_scrolling = false;
+                self.alt_8XY6_8XYE = true;
+                self.alt_BNNN = true;
+            }
+            Mode::XoChip => {
+                self.alt_allow_scrolling = true;
+                self.alt_FX55_FX65 = true;
+            }
+            Mode::Experimental => {
+                self.alt_FX55_FX65 = false;
+                self.alt_allow_scrolling = true;
+            }
+        }
+    }
+
     pub fn fetch(&mut self) -> u16{
         let pc = self.pc;
 
