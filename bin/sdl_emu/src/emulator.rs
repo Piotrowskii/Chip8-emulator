@@ -7,13 +7,11 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use std::time::{Duration, Instant};
-use Chip8_emulator::chip8_lib::chip_8::{Chip8, KeyPad, Mode};
-use Chip8_emulator::chip8_lib::display::Display;
-use Chip8_emulator::chip8_lib::parameters::*;
+use chip8_lib::chip_8::{Chip8, KeyPad, Mode};
+use chip8_lib::display::Display;
+use chip8_lib::parameters::*;
 use crate::audio_manager::AudioManager;
-use crate::pattern_wave::PatternWave;
 
 extern crate sdl2;
 

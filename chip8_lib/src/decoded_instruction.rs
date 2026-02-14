@@ -1,4 +1,5 @@
-use crate::chip8_lib::instructions::Instruction;
+use crate::instructions::Instruction;
+
 #[derive(Debug)]
 pub struct DecodedInstruction{
     pub opcode: u8,

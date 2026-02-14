@@ -1,4 +1,4 @@
-use crate::chip8_lib::parameters::DISPLAY_SIZE;
+use crate::parameters::*;
 
 #[derive(PartialEq, Copy, Clone)]
 pub struct Display{

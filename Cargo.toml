@@ -1,10 +1,6 @@
-[package]
-name = "Chip8_emulator"
-version = "0.1.0"
-edition = "2024"
-
-
-[dependencies]
-sdl2 = { version = "0.38.0", features = ["bundled"] }
-rand = { version = "0.9.2" }
-rfd = { version = "0.17.2"}
+[workspace]
+members = [
+    "chip8_lib",
+    "bin/dx_emu",
+    "bin/sdl_emu"
+]

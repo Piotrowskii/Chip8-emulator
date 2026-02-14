@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 use std::{fs, thread};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use crate::chip8_lib::cpu_state::CpuState;
-use crate::chip8_lib::display::Display;
-use crate::chip8_lib::parameters::*;
+use crate::cpu_state::CpuState;
+use crate::display::Display;
+use crate::parameters::*;
 
 #[repr(usize)]
 #[derive(PartialEq, Copy, Clone)]
