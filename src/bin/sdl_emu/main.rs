@@ -1,8 +1,10 @@
 mod emulator;
-mod chip8;
+mod pattern_wave;
+mod square_wave;
+mod audio_manager;
 
 use rfd::FileDialog;
-use crate::emulator::emulator::Emulator;
+use crate::emulator::Emulator;
 
 pub fn main() -> Result<(), String> {
     let files = FileDialog::new()
