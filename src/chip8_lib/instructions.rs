@@ -1,8 +1,8 @@
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
-use crate::chip8::cpu_state::CpuState;
-use crate::chip8::display::Display;
-use crate::chip8::parameters::{DISPLAY_HEIGHT, DISPLAY_SIZE, DISPLAY_WIDTH, FONT_MEMORY_START};
+use crate::chip8_lib::cpu_state::CpuState;
+use crate::chip8_lib::display::Display;
+use crate::chip8_lib::parameters::{DISPLAY_HEIGHT, DISPLAY_SIZE, DISPLAY_WIDTH, FONT_MEMORY_START};
 
 #[derive(Debug)]
 pub enum Instruction {

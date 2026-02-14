@@ -1,6 +1,6 @@
-use crate::chip8::chip_8::Mode;
-use crate::chip8::decoded_instruction::DecodedInstruction;
-use crate::chip8::instructions::Instruction;
+use crate::chip8_lib::chip_8::Mode;
+use crate::chip8_lib::decoded_instruction::DecodedInstruction;
+use crate::chip8_lib::instructions::Instruction;
 
 pub struct CpuState {
     pub memory: [u8; 65_536],

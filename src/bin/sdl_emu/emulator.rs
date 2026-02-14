@@ -9,9 +9,9 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use std::time::{Duration, Instant};
-use Chip8_emulator::chip8::chip_8::{Chip8, KeyPad, Mode};
-use Chip8_emulator::chip8::display::Display;
-use Chip8_emulator::chip8::parameters::*;
+use Chip8_emulator::chip8_lib::chip_8::{Chip8, KeyPad, Mode};
+use Chip8_emulator::chip8_lib::display::Display;
+use Chip8_emulator::chip8_lib::parameters::*;
 use crate::audio_manager::AudioManager;
 use crate::pattern_wave::PatternWave;
 
@@ -168,7 +168,7 @@ impl Emulator{
         println!("FPS decreased to {}", self.fps);
     }
     fn get_ns_from_fps(value: u16) -> u64{
-        1_000_000_000 / value as u64
+        1_000_000_000 / value.max(1) as u64
     }
     fn restart_chip8(&mut self){
         let compatibility = {

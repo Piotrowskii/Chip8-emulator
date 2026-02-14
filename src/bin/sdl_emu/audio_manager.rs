@@ -1,6 +1,6 @@
 use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use sdl2::{AudioSubsystem, Sdl};
-use Chip8_emulator::chip8::chip_8::Mode;
+use Chip8_emulator::chip8_lib::chip_8::Mode;
 use crate::pattern_wave::PatternWave;
 use crate::square_wave::SquareWave;
 
