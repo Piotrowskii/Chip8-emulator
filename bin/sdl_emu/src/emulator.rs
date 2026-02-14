@@ -11,7 +11,8 @@ use std::time::{Duration, Instant};
 use chip8_lib::chip_8::{Chip8, KeyPad, Mode};
 use chip8_lib::display::Display;
 use chip8_lib::parameters::*;
-use crate::audio_manager::AudioManager;
+use crate::file_picker;
+use crate::sound::audio_manager::AudioManager;
 
 extern crate sdl2;
 
@@ -81,6 +82,7 @@ impl Emulator{
                     Event::KeyUp { keycode: Some(Keycode::Kp7), .. } => self.change_compatibility_mode(Mode::Chip8),
                     Event::KeyUp { keycode: Some(Keycode::Kp8), .. } => self.change_compatibility_mode(Mode::SuperChip),
                     Event::KeyUp { keycode: Some(Keycode::Kp9), .. } => self.change_compatibility_mode(Mode::XoChip),
+                    Event::KeyUp { keycode: Some(Keycode::Kp2), .. } => self.change_game(),
                     _ => self.handle_keypad_presses(&event),
                 }
             }
@@ -138,50 +140,6 @@ impl Emulator{
         }
     }
 
-    fn get_display_copy(&self) -> Display{
-        let display = self.chip8.display.lock().unwrap();
-        *display
-    }
-
-    fn increase_ipf(&mut self, value: u32){
-        let value = self.chip8.ipf.load(Ordering::Relaxed).saturating_add(value);
-        self.chip8.ipf.store(value, Ordering::Relaxed);
-        println!("IPF increased to {}", value);
-    }
-    fn decrease_ipf(&mut self, value: u32){
-        let value = self.chip8.ipf.load(Ordering::Relaxed).saturating_sub(value);
-        self.chip8.ipf.store(value, Ordering::Relaxed);
-        println!("IPF decreased to {}", value);
-    }
-    fn increase_fps(&mut self, additional_fps: u16){
-        self.fps = self.fps.saturating_add(additional_fps);
-        self.fps_ns = Self::get_ns_from_fps(self.fps);
-        self.chip8.fps_ns.store(self.fps_ns, Ordering::Relaxed);
-        println!("FPS increased to {}", self.fps);
-    }
-    fn decrease_fps(&mut self, additional_fps: u16){
-        self.fps = self.fps.saturating_sub(additional_fps);
-        self.fps_ns = Self::get_ns_from_fps(self.fps);
-        self.chip8.fps_ns.store(self.fps_ns, Ordering::Relaxed);
-        println!("FPS decreased to {}", self.fps);
-    }
-    fn get_ns_from_fps(value: u16) -> u64{
-        1_000_000_000 / value.max(1) as u64
-    }
-    fn restart_chip8(&mut self){
-        let compatibility = {
-            let lock = self.chip8.compatibility_mode.lock().unwrap();
-            *lock
-        };
-        self.chip8.running.store(false, Ordering::Relaxed);
-        self.chip8 = Chip8::get_new_and_start(&self.current_game, compatibility);
-    }
-
-    fn change_compatibility_mode(&mut self, compatibility_mode: Mode){
-        self.chip8.set_compatibility_mode(&compatibility_mode);
-        println!("Compatibility mode changed to {:?}", compatibility_mode);
-    }
-
     fn play_sounds(&mut self){
         let (mode, sound_timer, sound_pattern_buffer, pitch_register) = {
             let mode = self.chip8.compatibility_mode.lock().unwrap();
@@ -228,5 +186,54 @@ impl Emulator{
             _ => {None}
         }
     }
+    fn get_display_copy(&self) -> Display{
+        let display = self.chip8.display.lock().unwrap();
+        *display
+    }
+    fn increase_ipf(&mut self, value: u32){
+        let value = self.chip8.ipf.load(Ordering::Relaxed).saturating_add(value);
+        self.chip8.ipf.store(value, Ordering::Relaxed);
+        println!("IPF increased to {}", value);
+    }
+    fn decrease_ipf(&mut self, value: u32){
+        let value = self.chip8.ipf.load(Ordering::Relaxed).saturating_sub(value);
+        self.chip8.ipf.store(value, Ordering::Relaxed);
+        println!("IPF decreased to {}", value);
+    }
+    fn increase_fps(&mut self, additional_fps: u16){
+        self.fps = self.fps.saturating_add(additional_fps);
+        self.fps_ns = Self::get_ns_from_fps(self.fps);
+        self.chip8.fps_ns.store(self.fps_ns, Ordering::Relaxed);
+        println!("FPS increased to {}", self.fps);
+    }
+    fn decrease_fps(&mut self, additional_fps: u16){
+        self.fps = self.fps.saturating_sub(additional_fps);
+        self.fps_ns = Self::get_ns_from_fps(self.fps);
+        self.chip8.fps_ns.store(self.fps_ns, Ordering::Relaxed);
+        println!("FPS decreased to {}", self.fps);
+    }
+    fn get_ns_from_fps(value: u16) -> u64{
+        1_000_000_000 / value.max(1) as u64
+    }
+    fn restart_chip8(&mut self){
+        let compatibility = {
+            let lock = self.chip8.compatibility_mode.lock().unwrap();
+            *lock
+        };
+        self.chip8.running.store(false, Ordering::Relaxed);
+        self.chip8 = Chip8::get_new_and_start(&self.current_game, compatibility);
+    }
+    fn change_compatibility_mode(&mut self, compatibility_mode: Mode){
+        self.chip8.set_compatibility_mode(&compatibility_mode);
+        println!("Compatibility mode changed to {:?}", compatibility_mode);
+    }
+    fn change_game(&mut self){
+        let file = file_picker::pick_file();
+        if let Some(file) = file {
+            self.current_game = file;
+        }
+        self.restart_chip8();
+    }
+
 
 }

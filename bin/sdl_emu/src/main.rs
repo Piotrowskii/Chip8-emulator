@@ -1,18 +1,15 @@
 mod emulator;
-mod pattern_wave;
-mod square_wave;
-mod audio_manager;
+mod sound;
+mod file_picker;
 
 use rfd::FileDialog;
 use crate::emulator::Emulator;
+use crate::file_picker::pick_file;
 
 pub fn main() -> Result<(), String> {
-    let files = FileDialog::new()
-        .add_filter("rom", &["ch8", "schip", "xo8"])
-        .set_directory("/")
-        .pick_file();
+    let file = file_picker::pick_file();
 
-    if let Some(file) = files {
+    if let Some(file) = file {
         let mut emulator = Emulator::new(file);
         emulator.run();
     }

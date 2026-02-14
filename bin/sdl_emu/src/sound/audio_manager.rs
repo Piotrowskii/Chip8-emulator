@@ -1,8 +1,8 @@
 use sdl2::audio::{AudioDevice, AudioSpecDesired};
 use sdl2::{AudioSubsystem, Sdl};
 use chip8_lib::chip_8::Mode;
-use crate::pattern_wave::PatternWave;
-use crate::square_wave::SquareWave;
+use crate::sound::pattern_wave::PatternWave;
+use crate::sound::square_wave::SquareWave;
 
 pub struct AudioManager{
     pub pattern_wave: Option<AudioDevice<PatternWave>>,
