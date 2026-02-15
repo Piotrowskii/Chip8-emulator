@@ -1,5 +1,6 @@
 use std::path::{PathBuf};
-use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use sdl2::render::WindowCanvas;
 use sdl2::{EventPump, Sdl};
@@ -65,7 +66,7 @@ impl Emulator{
     }
 
     pub fn run(&mut self){
-        'running: while self.chip8.running.load(Ordering::Relaxed){
+        'running: loop{
             let start = Instant::now();
 
             let events: Vec<Event> = self.event_pump.poll_iter().collect::<Vec<Event>>();
@@ -220,7 +221,7 @@ impl Emulator{
             let lock = self.chip8.compatibility_mode.lock().unwrap();
             *lock
         };
-        self.chip8.running.store(false, Ordering::Relaxed);
+        self.chip8.stop();
         self.chip8 = Chip8::get_new_and_start(&self.current_game, compatibility);
     }
     fn change_compatibility_mode(&mut self, compatibility_mode: Mode){

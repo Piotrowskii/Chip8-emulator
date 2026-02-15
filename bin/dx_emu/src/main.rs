@@ -1,14 +1,17 @@
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
 use dioxus::prelude::*;
-
+use chip8_lib::chip_8::{Chip8, Mode};
 use views::{Home};
-
+use crate::helpers::chip8_wrapper::Chip8Web;
 
 /// Define a components module that contains all shared components for our app.
 mod components;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
 mod views;
+mod helpers;
 
 /// The Route enum is used to define the structure of internal routes in our app. All route enums need to derive
 /// the [`Routable`] trait, which provides the necessary methods for the router to work.
@@ -18,28 +21,15 @@ mod views;
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
 enum Route {
-    // The layout attribute defines a wrapper for all routes under the layout. Layouts are great for wrapping
-    // many routes with a common UI like a navbar.
-
-    // The route attribute defines the URL pattern that a specific route matches. If that pattern matches the URL,
-    // the component for that route will be rendered. The component name that is rendered defaults to the variant name.
     #[route("/")]
-    Home {},
-
-    // The route attribute can include dynamic parameters that implement [`std::str::FromStr`] and [`std::fmt::Display`] with the `:` syntax.
-    // In this case, id will match any integer like `/blog/123` or `/blog/-456`.
-    //#[route("/blog/:id")]
-    // Fields of the route variant will be passed to the component as props. In this case, the blog component must accept
-    // an `id` prop of type `i32`.
-    //Blog { id: i32 },
+    Home {}
 }
 
-// We can import assets in dioxus with the `asset!` macro. This macro takes a path to an asset relative to the crate root.
-// The macro returns an `Asset` type that will display as the path to the asset in the browser or a local path in desktop bundles.
 const FAVICON: Asset = asset!("/assets/favicon.ico");
-// The asset macro also minifies some assets like CSS and JS to make bundled smaller
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
-
+const T8NKS: &[u8] = include_bytes!("../assets/roms/t8nks.ch8");
+const BREAKOUT: &[u8] = include_bytes!("../assets/roms/br8kout.ch8");
+static CHIP8: GlobalSignal<Chip8Web> = Signal::global(|| Chip8Web::new(Mode::XoChip));
 fn main() {
     dioxus::launch(App);
 }

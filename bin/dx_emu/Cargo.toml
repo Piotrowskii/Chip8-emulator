@@ -2,13 +2,16 @@
 name = "dx_emu"
 version = "0.1.0"
 authors = ["Piotrowskii <183814055+Piotrowskii@users.noreply.github.com>"]
-edition = "2024"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 dioxus = { version = "0.7.1", features = ["router"] }
 chip8_lib = { path = "../../chip8_lib" }
+gloo-timers = "0.3.0"
+web-time = "1.1.0"
+
 
 [features]
 default = ["web"]

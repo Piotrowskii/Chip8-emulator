@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, AtomicU8, Ordering};
 use std::{fs, thread};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+use crate::chip_8;
 use crate::cpu_state::CpuState;
 use crate::display::Display;
 use crate::parameters::*;
@@ -48,7 +49,7 @@ pub struct Chip8{
 
 impl Chip8{
     pub fn new(mode: Mode) -> Chip8{
-        Chip8{
+        let mut chip_8 = Chip8{
             state: Arc::new(Mutex::new(CpuState::default())),
             display: Arc::new(Mutex::new(Display::new())),
             running: Arc::new(AtomicBool::new(true)),
@@ -57,12 +58,13 @@ impl Chip8{
             fps_ns: Arc::new(AtomicU64::new(16_666_667)),
             ipf: Arc::new(AtomicU32::new(100)),
             compatibility_mode: Arc::new(Mutex::new(mode)),
-        }
+        };
+        chip_8.set_compatibility_mode(&mode);
+        chip_8
     }
 
     pub fn get_new_and_start(rom_file: &PathBuf, mode: Mode) -> Chip8{
         let mut chip8 = Chip8::new(mode);
-        chip8.set_compatibility_mode(&mode);
         chip8.start(rom_file);
         chip8
     }
@@ -81,14 +83,18 @@ impl Chip8{
         }
     }
 
-    fn start(&mut self, rom_file: &PathBuf){
+    pub fn stop(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
+    }
+
+    pub fn start(&mut self, rom_file: &PathBuf){
         self.load_font_into_memory();
         self.load_cartridge(rom_file);
         self.start_timer_thread();
         self.start_execution_thread();
     }
 
-    fn load_font_into_memory(&self){
+    pub fn load_font_into_memory(&self){
         let mut state = self.state.lock().unwrap();
 
         for i in 0..FONT_DATA.len(){
@@ -100,7 +106,7 @@ impl Chip8{
         }
     }
 
-    fn load_cartridge(&mut self, rom_file: &PathBuf){
+    pub fn load_cartridge(&mut self, rom_file: &PathBuf){
         let mut state = self.state.lock().unwrap();
 
         let file = fs::read(rom_file);

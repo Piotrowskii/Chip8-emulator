@@ -1,6 +1,6 @@
 use crate::parameters::*;
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub struct Display{
     pub plane_1: [bool; DISPLAY_SIZE],
     pub plane_2: [bool; DISPLAY_SIZE],

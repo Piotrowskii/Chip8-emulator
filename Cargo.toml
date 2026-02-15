@@ -1,6 +1,8 @@
 [workspace]
+resolver = "2"
+
 members = [
-    "chip8_lib",
+    "bin/sdl_emu",
     "bin/dx_emu",
-    "bin/sdl_emu"
+    "chip8_lib",
 ]
