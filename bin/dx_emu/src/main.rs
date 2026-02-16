@@ -27,9 +27,8 @@ enum Route {
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
-const T8NKS: &[u8] = include_bytes!("../assets/roms/t8nks.ch8");
-const BREAKOUT: &[u8] = include_bytes!("../assets/roms/br8kout.ch8");
-static CHIP8: GlobalSignal<Chip8Web> = Signal::global(|| Chip8Web::new(Mode::XoChip));
+const GLOBAL_CSS: Asset = asset!("/assets/global.css");
+const JERSEY10_FONT: Asset = asset!("/assets/fonts/Jersey10-Regular.ttf");
 fn main() {
     dioxus::launch(App);
 }
@@ -43,10 +42,21 @@ fn App() -> Element {
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
-        
+        document::Link { rel: "stylesheet", href: GLOBAL_CSS }
+        document::Link { rel: "preload", href: JERSEY10_FONT, as: "font" , type: "font/ttf", crossorigin: "anonymous"}
+        document::Style {
+            r#"
+            @font-face {{
+                font-family: 'Jersey 10';
+                src: url("{JERSEY10_FONT}") format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }}
+            "#
+        }
         div{
+            class: "mt-5",
             Router::<Route> {}
         }
-
     }
 }

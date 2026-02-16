@@ -3,4 +3,7 @@
 //! component  to be used in our app.
 
 mod emu_display;
+mod emulator;
+
 pub use emu_display::EmuDisplay;
+pub use emulator::Emulator;
