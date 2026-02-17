@@ -1,15 +1,13 @@
-use std::fs;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use dioxus::dioxus_core::Task;
-use web_time::Instant;
-use chip8_lib::chip_8::{Chip8, KeyPad, Mode};
+use chip8_lib::chip_8::{Chip8, Mode};
 use dioxus::prelude::*;
-use gloo_timers::future::TimeoutFuture;
 use chip8_lib::display::Display;
-use rand::random;
 use crate::helpers::game::Game;
+use web_time::Instant;
+use gloo_timers::future::TimeoutFuture;
+use chip8_lib::keypad::KeyPad;
 
 pub struct Chip8Web{
     chip8: Chip8,
@@ -71,9 +69,9 @@ impl Chip8Web {
                 }
 
                 let elapsed_ns = start.elapsed().as_nanos() as u64;
-                let wait_time_ms = ((fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns) as f64) / 1_000_000f64).round() as u32;
+                let wait_time_ns = fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns);
 
-                TimeoutFuture::new(wait_time_ms.max(1)).await;
+                Self::delay(wait_time_ns).await;
             }
 
         });
@@ -107,8 +105,8 @@ impl Chip8Web {
 
                 }
                 let elapsed_ns = start.elapsed().as_nanos() as u64;
-                let wait_time_ms = ((fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns) as f64) / 1_000_000f64).round() as u32;
-                TimeoutFuture::new(wait_time_ms.max(1)).await;
+                let wait_time_ns = fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns);
+                Self::delay(wait_time_ns).await;
             }
         });
 
@@ -129,11 +127,10 @@ impl Chip8Web {
                     display_signal.set(*display);
                 }
 
-                TimeoutFuture::new(16).await;
 
                 let elapsed_ns = start.elapsed().as_nanos() as u64;
-                let wait_time_ms = ((fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns) as f64) / 1_000_000f64).round() as u32;
-                TimeoutFuture::new(wait_time_ms.max(1)).await;
+                let wait_time_ns = fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns);
+                Self::delay(wait_time_ns).await;
             }
 
         });
@@ -147,7 +144,7 @@ impl Chip8Web {
             state.memory[0x200 + i] = *byte;
         }
     }
-    pub fn handle_key_press(&mut self, key: Key, pressed: bool){
+    pub fn handle_key_press(&mut self, key: &String, pressed: bool){
         if let Some(key) = Self::get_keypad(&key){
             self.chip8.handle_input(key, pressed);
         }
@@ -167,28 +164,32 @@ impl Chip8Web {
             keys.fill(false);
         }
     }
-    fn get_keypad(key: &Key) -> Option<KeyPad> {
-        match key {
-            Key::Character(c) => match c.to_lowercase().as_str() {
-                "1" => Some(KeyPad::Num1),
-                "2" => Some(KeyPad::Num2),
-                "3" => Some(KeyPad::Num3),
-                "4" => Some(KeyPad::C),
-                "q" => Some(KeyPad::Num4),
-                "w" => Some(KeyPad::Num5),
-                "e" => Some(KeyPad::Num6),
-                "r" => Some(KeyPad::D),
-                "a" => Some(KeyPad::Num7),
-                "s" => Some(KeyPad::Num8),
-                "d" => Some(KeyPad::Num9),
-                "f" => Some(KeyPad::E),
-                "z" => Some(KeyPad::A),
-                "x" => Some(KeyPad::Num0),
-                "c" => Some(KeyPad::B),
-                "v" => Some(KeyPad::F),
-                _ => None,
-            },
+    fn get_keypad(key: &String) -> Option<KeyPad> {
+        let mut key = key.clone();
+        key = key.to_lowercase();
+
+        match key.as_str() {
+            "1" => Some(KeyPad::Num1),
+            "2" => Some(KeyPad::Num2),
+            "3" => Some(KeyPad::Num3),
+            "4" => Some(KeyPad::C),
+            "q" => Some(KeyPad::Num4),
+            "w" => Some(KeyPad::Num5),
+            "e" => Some(KeyPad::Num6),
+            "r" => Some(KeyPad::D),
+            "a" => Some(KeyPad::Num7),
+            "s" => Some(KeyPad::Num8),
+            "d" => Some(KeyPad::Num9),
+            "f" => Some(KeyPad::E),
+            "z" => Some(KeyPad::A),
+            "x" => Some(KeyPad::Num0),
+            "c" => Some(KeyPad::B),
+            "v" => Some(KeyPad::F),
             _ => None,
         }
+    }
+
+    async fn delay(frames_ns: u64) {
+        TimeoutFuture::new((frames_ns as f64 / 1_000_000f64).round() as u32).await;
     }
 }

@@ -1,8 +1,12 @@
 use std::path::PathBuf;
+use std::string::ToString;
 use std::sync::{Arc, Mutex};
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
 use dioxus::prelude::*;
+use web_sys::EventListener;
+use web_sys::wasm_bindgen::closure::Closure;
+use web_sys::wasm_bindgen::JsCast;
 use chip8_lib::chip_8::{Chip8, Mode};
 use views::{Home};
 use crate::helpers::chip8_wrapper::Chip8Web;
@@ -29,6 +33,9 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const GLOBAL_CSS: Asset = asset!("/assets/global.css");
 const JERSEY10_FONT: Asset = asset!("/assets/fonts/Jersey10-Regular.ttf");
+static KEYBOARD_EVENTS: GlobalSignal<Option<(String, bool)>> = GlobalSignal::new(|| None);
+static SHOW_KEYBOARD: GlobalSignal<bool> = GlobalSignal::new(|| false);
+
 fn main() {
     dioxus::launch(App);
 }
@@ -39,6 +46,27 @@ fn main() {
 /// Components should be annotated with `#[component]` to support props, better error messages, and autocomplete
 #[component]
 fn App() -> Element {
+    let mut keyboard_events = KEYBOARD_EVENTS.signal().clone();
+
+    use_effect(move || {
+        let window = web_sys::window().unwrap();
+
+        let closure_keydown = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+            keyboard_events.set(Some((event.key(), true)));
+        }) as Box<dyn FnMut(_)>);
+
+        let closure_keyup = Closure::wrap(Box::new(move |event: web_sys::KeyboardEvent| {
+            keyboard_events.set(Some((event.key(), false)));
+        }) as Box<dyn FnMut(_)>);
+
+        window.add_event_listener_with_callback("keydown", closure_keydown.as_ref().unchecked_ref()).unwrap();
+        window.add_event_listener_with_callback("keyup", closure_keyup.as_ref().unchecked_ref()).unwrap();
+
+        closure_keydown.forget();
+        closure_keyup.forget();
+    });
+
+
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
@@ -55,8 +83,10 @@ fn App() -> Element {
             "#
         }
         div{
-            class: "mt-5",
+            id: "test",
+            class: "mt-5 select-none md:select-auto",
             Router::<Route> {}
         }
     }
 }
+

@@ -5,7 +5,7 @@ use chip8_lib::parameters::*;
 use crate::helpers::game::{Colors, Game};
 
 #[component]
-pub fn EmuDisplay(display: Display, game: Option<Game>, focused: bool) -> Element{
+pub fn EmuDisplay(display: Display, game: Option<Game>, paused: bool) -> Element{
     rsx! {
         div{
             class: "relative w-full",
@@ -30,17 +30,17 @@ pub fn EmuDisplay(display: Display, game: Option<Game>, focused: bool) -> Elemen
             }
             if game.is_none(){
                 div{
-                    class: "absolute top-0 left-0 w-full h-full bg-base-100 opacity-90 rounded-sm text-5xl text-primary flex items-center justify-center text-center",
+                    class: "absolute top-0 left-0 w-full h-full bg-base-200 opacity-90 rounded-sm text-3xl md:text-5xl text-primary flex items-center justify-center text-center",
                     "Select game and start emulator"
                 }
             }
-            else if !focused{
+            else if paused{
                 div{
-                    class: "absolute top-0 left-0 w-full h-full bg-base-100 opacity-90 rounded-sm text-8xl text-primary flex flex-col items-center justify-center text-center",
+                    class: "absolute top-0 left-0 w-full h-full bg-base-200 opacity-90 rounded-sm text-6xl md:text-8xl text-primary flex flex-col items-center justify-center text-center",
                     p { "Game paused" }
                     p {
-                        class: "text-3xl text-secondary",
-                        "Focus in emulator to unpause"
+                        class: "text-2xl md:text-3xl text-secondary",
+                        "Press button to unpause"
                     }
                 }
             }

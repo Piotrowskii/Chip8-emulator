@@ -4,6 +4,8 @@
 
 mod emu_display;
 mod emulator;
+mod mobile_keyboard;
 
 pub use emu_display::EmuDisplay;
 pub use emulator::Emulator;
+pub use mobile_keyboard::MobileKeyboard;

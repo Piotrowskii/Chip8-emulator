@@ -4,3 +4,4 @@ pub mod decoded_instruction;
 pub mod display;
 pub mod instructions;
 pub mod parameters;
+pub mod keypad;
