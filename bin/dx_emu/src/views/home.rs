@@ -13,9 +13,6 @@ pub fn Home() -> Element {
                 "CHIP8 Emulator"
             }
             Emulator{}
-            if SHOW_KEYBOARD(){
-                MobileKeyboard {}
-            }
         }
     }
 }

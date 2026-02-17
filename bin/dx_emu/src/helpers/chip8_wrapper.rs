@@ -189,6 +189,27 @@ impl Chip8Web {
         }
     }
 
+    pub fn chip8_key_to_keyboard(key: &str) -> &str{
+        match key{
+            "1" => "1",
+            "2" => "2",
+            "3" => "3",
+            "C" => "4",
+            "4" => "Q",
+            "5" => "W",
+            "6" => "E",
+            "D" => "R",
+            "7" => "A",
+            "8" => "S",
+            "9" => "D",
+            "E" => "F",
+            "A" => "Z",
+            "0" => "X",
+            "B" => "C",
+            "F" => "V",
+            _ => "❌"
+        }
+    }
     async fn delay(frames_ns: u64) {
         TimeoutFuture::new((frames_ns as f64 / 1_000_000f64).round() as u32).await;
     }

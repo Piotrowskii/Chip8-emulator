@@ -1,4 +1,6 @@
+use dioxus::prelude::*;
 use chip8_lib::chip_8::Mode;
+use chip8_lib::keypad::KeyPad;
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct Colors{
@@ -8,12 +10,13 @@ pub struct Colors{
     pub none: &'static str,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Game{
     pub name: &'static str,
     pub bytes: &'static [u8],
     pub mode: Mode,
     pub colors: Colors,
+    pub instructions: Vec<(KeyPad, &'static str)>
 }
 
 impl Game{
@@ -31,7 +34,11 @@ impl Game{
                 plane2: "#000000",
                 mixed: "#000000",
                 none: "#000000"
-            }
+            },
+            instructions: vec![
+                (KeyPad:: Num7, "Left"),
+                (KeyPad:: Num9, "Right"),
+            ]
         }
     }
     
@@ -45,7 +52,17 @@ impl Game{
                 plane2: "#456543",
                 mixed: "#EEEEFF",
                 none: "#87CEEB"
-            }
+            },
+            instructions: vec![
+                (KeyPad:: Num5, "Up"),
+                (KeyPad:: Num8, "Down"),
+                (KeyPad:: Num7, "Left"),
+                (KeyPad:: Num9, "Right"),
+                (KeyPad:: Num1, "Regular"),
+                (KeyPad:: Num2, "Mirv"),
+                (KeyPad:: Num3, "Nuke"),
+                (KeyPad:: Num6, "Shoot"),
+            ]
         }
     }
 }

@@ -3,7 +3,7 @@ use dioxus::core_macro::rsx;
 use dioxus::hooks::{use_signal};
 use chip8_lib::display::Display;
 use dioxus::prelude::*;
-use crate::components::EmuDisplay;
+use crate::components::{EmuDisplay, Instructions, MobileKeyboard};
 use crate::helpers::chip8_wrapper::Chip8Web;
 use crate::helpers::game::Game;
 use crate::{KEYBOARD_EVENTS, SHOW_KEYBOARD};
@@ -89,7 +89,15 @@ pub fn Emulator() -> Element{
                     },
                     "⌨️"
                 }
-
+            }
+            if !SHOW_KEYBOARD(){
+                Instructions{
+                    game: selected_game()
+                }
+            }else{
+                MobileKeyboard {
+                    game: selected_game()
+                }
             }
         }
     }
@@ -104,7 +112,7 @@ pub fn start_emu(chip8_signal: &mut Signal<Option<Chip8Web>>, game: &Game, displ
     let mut new_chip8 = Chip8Web::new(game.mode);
     new_chip8.start(&game, display_signal);
     chip8_signal.set(Some(new_chip8));
-    selected_game.set(Some(*game));
+    selected_game.set(Some(game.clone()));
 
     paused.set(false);
 }
