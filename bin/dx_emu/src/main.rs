@@ -29,7 +29,7 @@ enum Route {
     Home {}
 }
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
+const FAVICON: Asset = asset!("/assets/icon.svg");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const GLOBAL_CSS: Asset = asset!("/assets/global.css");
 const JERSEY10_FONT: Asset = asset!("/assets/fonts/Jersey10-Regular.ttf");
@@ -86,6 +86,17 @@ fn App() -> Element {
             id: "test",
             class: "mt-5 select-none md:select-auto",
             Router::<Route> {}
+        }
+        div{
+            class: "fixed bottom-0 w-full text-center",
+            a{
+                class: "text-center",
+                href: "https://github.com/Piotrowskii",
+                p{
+                    class: "text-xl",
+                    "Created by Piotrowskii"
+                }
+            }
         }
     }
 }

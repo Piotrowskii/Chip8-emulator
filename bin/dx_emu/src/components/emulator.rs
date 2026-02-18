@@ -103,12 +103,26 @@ pub fn Emulator() -> Element{
                     if paused_signal(){
                         span{
                             class: "text-3xl",
-                            "▸"
+                            svg {
+                                xmlns: "http://www.w3.org/2000/svg",
+                                height: "24px",
+                                view_box: "0 -960 960 960",
+                                path {
+                                    d: "M320-200v-560l440 280-440 280Z"
+                                }
+                            }
                         }
                     }else{
                         span{
                             class: "text-xl",
-                            "⏸︎"
+                            svg {
+                                xmlns: "http://www.w3.org/2000/svg",
+                                height: "24px",
+                                view_box: "0 -960 960 960",
+                                path {
+                                    d: "M560-200v-560h160v560H560Zm-320 0v-560h160v560H240Z"
+                                }
+                            }
                         }
                     }
                 }
@@ -120,18 +134,26 @@ pub fn Emulator() -> Element{
                         let current_value = *show_keyboard_signal.peek();
                         show_keyboard_signal.set(!current_value);
                     },
-                    "⌨️"
+                    svg {
+                        xmlns: "http://www.w3.org/2000/svg",
+                        height: "24px",
+                        view_box: "0 -960 960 960",
+                        path {
+                            d: "M160-200q-33 0-56.5-23.5T80-280v-400q0-33 23.5-56.5T160-760h640q33 0 56.5 23.5T880-680v400q0 33-23.5 56.5T800-200H160Zm0-80h640v-400H160v400Zm160-40h320v-80H320v80ZM200-440h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80ZM200-560h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80Zm120 0h80v-80h-80v80ZM160-280v-400 400Z"
+                        }
+                    }
                 }
             }
             if let Some(game) = active_game_signal() {
                 if !SHOW_KEYBOARD() {
-                Instructions{
-                    game: game.clone()
-                }
-                }else{
-                    MobileKeyboard {
+                    Instructions{
                         game: game.clone()
                     }
+                }
+            }
+            if SHOW_KEYBOARD(){
+                MobileKeyboard {
+                    game: active_game_signal()
                 }
             }
         }

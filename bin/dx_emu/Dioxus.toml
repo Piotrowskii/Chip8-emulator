@@ -1,9 +1,11 @@
 [application]
 
 [web.app]
+base_path = "Chip8-emulator"
+
 
 # HTML title tag content
-title = "Chip8 Emu"
+title = "XO-Chip Emulator"
 
 # include `assets` in web platform
 [web.resource]

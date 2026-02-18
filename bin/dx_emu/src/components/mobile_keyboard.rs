@@ -5,9 +5,13 @@ use crate::helpers::game::Game;
 use crate::KEYBOARD_EVENTS;
 
 #[component]
-pub fn MobileKeyboard(game: Game) -> Element {
+pub fn MobileKeyboard(game: Option<Game>) -> Element {
     let all_keys = KeyPad::all();
-    let controls = game.get_all_controls();
+    let mut controls: Vec<(KeyPad, &'static str)> = vec![];
+    if let Some(_game) = game{
+        controls = _game.get_all_controls();
+    }
+
     let mut keyboard_events = KEYBOARD_EVENTS.signal().clone();
 
     let is_key_active = |key: &KeyPad| -> bool {
