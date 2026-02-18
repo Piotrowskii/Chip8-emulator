@@ -10,7 +10,7 @@ pub fn Home() -> Element {
             class: "lg:w-3/5 2xl:w-2/5 p-2 lg:p-5 mx-auto flex flex-col justify-center lg:bg-base-200 lg:card lg:shadow-md",
             p{
                 class: "text-5xl md:text-8xl text-center my-4 underline",
-                "CHIP8 Emulator"
+                "XO-Chip Emulator"
             }
             Emulator{}
         }

@@ -15,7 +15,6 @@ web-time = "1.1.0"
 web-sys = { version = "0.3.85", features = ["Window", "KeyboardEvent", "EventListener"]}
 
 
-
 [features]
 default = ["web"]
 # The feature that are only required for the web = ["dioxus/web"] build target should be optional and only enabled in the web = ["dioxus/web"] feature

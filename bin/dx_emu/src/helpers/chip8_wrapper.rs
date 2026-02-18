@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use dioxus::dioxus_core::Task;
 use chip8_lib::chip_8::{Chip8, Mode};
@@ -29,7 +29,7 @@ impl Chip8Web {
             timer_thread: None,
             display_thread: None,
             ipf_before_pause,
-            fps_before_pause: 0,
+            fps_before_pause: 0
         }
     }
     pub fn start(&mut self, game: &Game, display_signal: &mut Signal<Display>){
@@ -123,10 +123,9 @@ impl Chip8Web {
             while running.load(Ordering::Relaxed) {
                 let start = Instant::now();
 
-                if let Ok(display) = chip8_display.try_lock(){
+                if let Ok(display) = chip8_display.lock(){
                     display_signal.set(*display);
                 }
-
 
                 let elapsed_ns = start.elapsed().as_nanos() as u64;
                 let wait_time_ns = fps_ns.load(Ordering::Relaxed).saturating_sub(elapsed_ns);
@@ -159,11 +158,6 @@ impl Chip8Web {
         self.chip8.ipf.store(self.ipf_before_pause, Ordering::Relaxed);
     }
 
-    pub fn clear_keys(&mut self){
-        if let Ok(mut keys) = self.chip8.keys.try_lock(){
-            keys.fill(false);
-        }
-    }
     fn get_keypad(key: &String) -> Option<KeyPad> {
         let mut key = key.clone();
         key = key.to_lowercase();
@@ -210,7 +204,7 @@ impl Chip8Web {
             _ => "❌"
         }
     }
-    async fn delay(frames_ns: u64) {
-        TimeoutFuture::new((frames_ns as f64 / 1_000_000f64).round() as u32).await;
+    async fn delay(ns: u64) {
+        TimeoutFuture::new((ns as f64 / 1_000_000f64).round() as u32).await;
     }
 }

@@ -26,7 +26,7 @@ pub struct Game{
 
 impl Game{
     pub fn available_games() -> Vec<Game>{
-        vec![Game::br8kout(), Game::t8nks()]
+        vec![Game::t8nks(), Game::br8kout(),  Game::chiken_scratch(), Game::octopeg(), Game::horsey_jump()]
     }
     pub fn get_all_controls(&self) -> Vec<(KeyPad, &'static str)>{
         self.instructions.iter().flat_map(|group| group.controls.iter().cloned()).collect()
@@ -88,6 +88,88 @@ impl Game{
                     name: "Actions",
                     controls: vec![
                         (KeyPad:: Num6, "Shoot"),
+                    ]
+                },
+            ]
+        }
+    }
+
+    pub fn chiken_scratch() -> Game{
+        Game{
+            name: "Chicken Scratch",
+            bytes: include_bytes!("../../assets/roms/chickenScratch.ch8"),
+            mode: Mode::XoChip,
+            colors: Colors{
+                plane1: "#8B4000",
+                plane2: "#FFAC1C",
+                mixed: "#EEEEFF",
+                none: "#FAD5A5"
+            },
+            instructions: vec![
+                ControlsGroup{
+                    name: "Steering",
+                    controls: vec![
+                        (KeyPad:: Num5, "Up"),
+                        (KeyPad:: Num8, "Down"),
+                        (KeyPad:: Num7, "Left"),
+                        (KeyPad:: Num9, "Right"),
+                    ]
+                },
+                ControlsGroup{
+                    name: "Actions",
+                    controls: vec![
+                        (KeyPad:: Num6, "Peck / Space"),
+                    ]
+                },
+            ]
+        }
+    }
+
+    pub fn octopeg() -> Game{
+        Game{
+            name: "Octopeg",
+            bytes: include_bytes!("../../assets/roms/octopeg.ch8"),
+            mode: Mode::Chip8,
+            colors: Colors{
+                plane1: "#554422",
+                plane2: "#456543",
+                mixed: "#EEEEFF",
+                none: "#87CEEB"
+            },
+            instructions: vec![
+                ControlsGroup{
+                    name: "Steering",
+                    controls: vec![
+                        (KeyPad:: Num7, "Left"),
+                        (KeyPad:: Num9, "Right"),
+                    ]
+                },
+                ControlsGroup{
+                    name: "Actions",
+                    controls: vec![
+                        (KeyPad:: Num6, "Shoot"),
+                    ]
+                },
+            ]
+        }
+    }
+
+    pub fn horsey_jump() -> Game{
+        Game{
+            name: "Horsey Jump",
+            bytes: include_bytes!("../../assets/roms/horseyJump.ch8"),
+            mode: Mode::SuperChip,
+            colors: Colors{
+                plane1: "#FFFFFF",
+                plane2: "#000000",
+                mixed: "#000000",
+                none: "#000000"
+            },
+            instructions: vec![
+                ControlsGroup{
+                    name: "Actions",
+                    controls: vec![
+                        (KeyPad:: Num0, "Jump"),
                     ]
                 },
             ]

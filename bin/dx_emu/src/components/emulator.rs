@@ -11,22 +11,53 @@ use crate::{KEYBOARD_EVENTS, SHOW_KEYBOARD};
 #[component]
 pub fn Emulator() -> Element{
     let mut display_signal = use_signal(|| Display::new());
-    let mut paused = use_signal(|| false);
-    let mut selected_game = use_signal(|| Game::br8kout());
-    let mut active_game: Signal<Option<Game>> = use_signal(|| None);
-    let mut chip8: Signal<Option<Chip8Web>> = use_signal(|| None);
-    let mut show_keyboard = SHOW_KEYBOARD.signal().clone();
+    let mut paused_signal = use_signal(|| false);
+    let mut selected_game_signal = use_signal(|| Game::t8nks());
+    let mut active_game_signal: Signal<Option<Game>> = use_signal(|| None);
+    let mut chip8_signal: Signal<Option<Chip8Web>> = use_signal(|| None);
+    let mut show_keyboard_signal = SHOW_KEYBOARD.signal().clone();
 
 
+    let mut start_emu = move |game: &Game|{
+        if let Some(chip8) = chip8_signal.write().as_mut(){
+            chip8.stop();
+            display_signal.set(Display::new());
+        }
+
+        let mut new_chip8 = Chip8Web::new(game.mode);
+        new_chip8.start(&game, &mut display_signal);
+        chip8_signal.set(Some(new_chip8));
+        active_game_signal.set(Some(game.clone()));
+
+        paused_signal.set(false);
+    };
+
+    let mut pause_resume_emu = move ||{
+        if let Some(chip8) = chip8_signal.write().as_mut(){
+            let is_paused = *paused_signal.peek();
+
+            if is_paused{
+                chip8.resume();
+            }else{
+                chip8.pause();
+            }
+
+            paused_signal.set(!is_paused);
+        }
+    };
+
+    let mut handle_key_press = move |key: &String, pressed: bool|{
+        if let Some(chip8) = chip8_signal.write().as_mut() {
+            chip8.handle_key_press(key, pressed);
+        }
+    };
 
     let keyboard_event = KEYBOARD_EVENTS.signal().clone();
-    let mut chip8_signal = chip8.clone();
     use_effect(move || {
         if let Some((key, pressed)) = keyboard_event.read().as_ref(){
-            handle_key_press(&mut chip8_signal, key, *pressed);
+            handle_key_press(key, *pressed);
         }
     });
-
 
     rsx! {
         div{
@@ -37,19 +68,20 @@ pub fn Emulator() -> Element{
                 class: "flex justify-center",
                 EmuDisplay {
                     display: display_signal(),
-                    game: active_game(),
-                    paused: paused()
+                    game: active_game_signal(),
+                    paused: paused_signal()
                 }
             }
             div{
                 class: "flex flex-row justify-center items-end gap-2 md:gap-4",
                 select{
+                    name: "game selection",
                     class: "select select-primary text-xl flex-6",
-                    value: "{selected_game().name}",
+                    value: "{selected_game_signal().name}",
                     onchange: move |event| {
                         let value = event.value().clone();
                         if let Some(game) = Game::available_games().into_iter().find(|game| game.name == value){
-                            selected_game.set(game);
+                            selected_game_signal.set(game);
                         }
                     },
                     for game in Game::available_games(){
@@ -61,14 +93,14 @@ pub fn Emulator() -> Element{
                     }
                 }
                 button{
-                    onclick: move |_| start_emu(&mut chip8, &selected_game.peek(), &mut display_signal, &mut active_game, &mut paused),
+                    onclick: move |_| start_emu(&selected_game_signal()),
                     class: "btn btn-primary mt-5 text-xl font-thin flex-2",
                     "Start"
                 }
                 button{
-                    onclick: move |_| pause_resume_emu(&mut chip8, &mut paused),
+                    onclick: move |_| pause_resume_emu(),
                     class: "btn btn-primary mt-5 text-xl flex-1",
-                    if paused(){
+                    if paused_signal(){
                         span{
                             class: "text-3xl",
                             "▸"
@@ -81,58 +113,28 @@ pub fn Emulator() -> Element{
                     }
                 }
                 button{
-                    class: "btn btn-primary mt-5 text-xl flex-1 lg:hidden",
-                    class: if show_keyboard(){ "btn-secondary" },
+                    class: if !SHOW_KEYBOARD() {"lg:hidden"},
+                    class: "btn btn-primary mt-5 text-xl flex-1",
+                    class: if show_keyboard_signal(){ "btn-secondary" },
                     onclick: move |_| {
-                        let current_value = *show_keyboard.peek();
-                        show_keyboard.set(!current_value);
+                        let current_value = *show_keyboard_signal.peek();
+                        show_keyboard_signal.set(!current_value);
                     },
                     "⌨️"
                 }
             }
-            if !SHOW_KEYBOARD(){
+            if let Some(game) = active_game_signal() {
+                if !SHOW_KEYBOARD() {
                 Instructions{
-                    game: selected_game()
+                    game: game.clone()
                 }
-            }else{
-                MobileKeyboard {
-                    game: selected_game()
+                }else{
+                    MobileKeyboard {
+                        game: game.clone()
+                    }
                 }
             }
         }
     }
 }
 
-pub fn start_emu(chip8_signal: &mut Signal<Option<Chip8Web>>, game: &Game, display_signal: &mut Signal<Display>, selected_game: &mut Signal<Option<Game>>, paused: &mut Signal<bool>) {
-    if let Some(chip8) = chip8_signal.write().as_mut(){
-        chip8.stop();
-        display_signal.set(Display::new());
-    }
-
-    let mut new_chip8 = Chip8Web::new(game.mode);
-    new_chip8.start(&game, display_signal);
-    chip8_signal.set(Some(new_chip8));
-    selected_game.set(Some(game.clone()));
-
-    paused.set(false);
-}
-
-pub fn pause_resume_emu(chip8_signal: &mut Signal<Option<Chip8Web>>, paused: &mut Signal<bool>) {
-    if let Some(chip8) = chip8_signal.write().as_mut(){
-        let is_paused = *paused.peek();
-
-        if is_paused{
-            chip8.resume();
-        }else{
-            chip8.pause();
-        }
-
-        paused.set(!is_paused);
-    }
-}
-
-pub fn handle_key_press(chip8: &mut Signal<Option<Chip8Web>>, key: &String, pressed: bool){
-    if let Some(chip8) = chip8.write().as_mut() {
-        chip8.handle_key_press(key, pressed);
-    }
-}
