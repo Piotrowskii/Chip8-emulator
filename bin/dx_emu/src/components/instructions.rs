@@ -13,15 +13,27 @@ pub fn Instructions(game: Game) -> Element{
                 "Controls"
             }
             div{
-                class: "text-center w-full flex flex-row flex-wrap gap-3 justify-center",
-                for instruction in game.instructions{
-                    p{
-                        class: "text-xl flex flex-row gap-2",
-                        span{
-                            class: "kbd text-xl",
-                            {instruction.0.to_keyboard_str()}
+                class: "text-center w-full flex flex-col gap-3 justify-center",
+                for control_group in game.instructions{
+                    div{
+                        class: "flex flex-row flex-wrap",
+                        p{
+                            class: "text-xl flex flex-row flex-wrap gap-2 whitespace-nowrap",
+                            "{control_group.name}: ",
+                            for (key, action) in control_group.controls{
+                                div{
+                                    class: "kbd whitespace-nowrap ",
+                                    span{
+                                        class: "text-primary text-xl",
+                                        "{key.to_keyboard_str()}"
+                                    }
+                                    span{
+                                        class: "text-xl ml-2",
+                                        "- {action}"
+                                    }
+                                }
+                            }
                         }
-                        " - {instruction.1}"
                     }
                 }
             }

@@ -9,6 +9,11 @@ pub struct Colors{
     pub mixed: &'static str,
     pub none: &'static str,
 }
+#[derive(Clone, PartialEq)]
+pub struct ControlsGroup{
+    pub name: &'static str,
+    pub controls: Vec<(KeyPad, &'static str)>
+}
 
 #[derive(Clone, PartialEq)]
 pub struct Game{
@@ -16,14 +21,17 @@ pub struct Game{
     pub bytes: &'static [u8],
     pub mode: Mode,
     pub colors: Colors,
-    pub instructions: Vec<(KeyPad, &'static str)>
+    pub instructions: Vec<ControlsGroup>
 }
 
 impl Game{
     pub fn available_games() -> Vec<Game>{
         vec![Game::br8kout(), Game::t8nks()]
     }
-    
+    pub fn get_all_controls(&self) -> Vec<(KeyPad, &'static str)>{
+        self.instructions.iter().flat_map(|group| group.controls.iter().cloned()).collect()
+    }
+
     pub fn br8kout() -> Game{
         Game{
             name: "Br8kout",
@@ -36,8 +44,13 @@ impl Game{
                 none: "#000000"
             },
             instructions: vec![
-                (KeyPad:: Num7, "Left"),
-                (KeyPad:: Num9, "Right"),
+                ControlsGroup{
+                    name: "Steering",
+                    controls: vec![
+                        (KeyPad:: Num7, "Left"),
+                        (KeyPad:: Num9, "Right"),
+                    ]
+                }
             ]
         }
     }
@@ -54,14 +67,29 @@ impl Game{
                 none: "#87CEEB"
             },
             instructions: vec![
-                (KeyPad:: Num5, "Up"),
-                (KeyPad:: Num8, "Down"),
-                (KeyPad:: Num7, "Left"),
-                (KeyPad:: Num9, "Right"),
-                (KeyPad:: Num1, "Regular"),
-                (KeyPad:: Num2, "Mirv"),
-                (KeyPad:: Num3, "Nuke"),
-                (KeyPad:: Num6, "Shoot"),
+                ControlsGroup{
+                    name: "Steering",
+                    controls: vec![
+                        (KeyPad:: Num5, "Up"),
+                        (KeyPad:: Num8, "Down"),
+                        (KeyPad:: Num7, "Left"),
+                        (KeyPad:: Num9, "Right"),
+                    ]
+                },
+                ControlsGroup{
+                    name: "Weapons",
+                    controls: vec![
+                        (KeyPad:: Num1, "Regular"),
+                        (KeyPad:: Num2, "Mirv"),
+                        (KeyPad:: Num3, "Nuke"),
+                    ]
+                },
+                ControlsGroup{
+                    name: "Actions",
+                    controls: vec![
+                        (KeyPad:: Num6, "Shoot"),
+                    ]
+                },
             ]
         }
     }

@@ -7,16 +7,24 @@ use crate::KEYBOARD_EVENTS;
 #[component]
 pub fn MobileKeyboard(game: Game) -> Element {
     let all_keys = KeyPad::all();
+    let controls = game.get_all_controls();
     let mut keyboard_events = KEYBOARD_EVENTS.signal().clone();
 
+    let is_key_active = |key: &KeyPad| -> bool {
+        return controls.iter().map(|cont| cont.0).collect::<Vec<KeyPad>>().contains(key);
+    };
 
-    //TODO: Wrap Instructions into KeyGROUP
+    let get_key_text = |key: &KeyPad| -> Option<&'static str> {
+        return controls.iter().find(|control| control.0 == *key).map(|control| control.1);
+    };
+
     rsx!{
         div{
-            class: "grid grid-cols-4 gap-4 fixed bottom-0 left-0 w-full mb-8 card bg-base-200 p-2 lg:hidden",
+            class: "grid grid-cols-4 gap-2 fixed bottom-0 left-0 w-full mb-8 card bg-base-200 p-2 lg:hidden items-start ",
             for key in all_keys{
                 div{
-                    class: "flex flex-row justify-center",
+                    class: if is_key_active(&key) {""} else {""},
+                    class: "flex flex-col text-center justify-center",
                     button{
                         class: "text-3xl select-none btn btn-primary w-full active:btn-secondary",
                         onpointerdown: move |event| {
@@ -37,8 +45,13 @@ pub fn MobileKeyboard(game: Game) -> Element {
                         },
                         {key.to_chip8_str()}
                     }
+                    p{
+                        class: "text-xs text-secondary",
+                        {if let Some(text) = get_key_text(&key) {text} else {"⠀"}}
+                    }
                 }
             }
         }
     }
+
 }

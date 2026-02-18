@@ -21,7 +21,7 @@ pub enum KeyPad{
 
 impl KeyPad{
     pub fn all() -> [KeyPad;16]{
-        [KeyPad::Num0, KeyPad::Num1, KeyPad::Num2, KeyPad::Num3, KeyPad::Num4, KeyPad::Num5, KeyPad::Num6, KeyPad::Num7, KeyPad::Num8, KeyPad::Num9, KeyPad::A, KeyPad::B, KeyPad::C, KeyPad::D, KeyPad::E, KeyPad::F]
+        [ KeyPad::Num1, KeyPad::Num2, KeyPad::Num3, KeyPad::C, KeyPad::Num4, KeyPad::Num5, KeyPad::Num6, KeyPad::D, KeyPad::Num7, KeyPad::Num8, KeyPad::Num9, KeyPad::E, KeyPad::A, KeyPad::Num0, KeyPad::B, KeyPad::F]
     }
 
     pub fn to_chip8_str(&self) -> &'static str{
