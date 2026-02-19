@@ -5,9 +5,9 @@
   <ul align="center" style="list-style: none;">
     <summary>
       <h2 align="center">
-        >>>>>>>
+        &gt;&gt;&gt;&gt;&gt;&gt;
         <a target="_blank" rel="noopener noreferrer" href="https://piotrowskii.github.io/Chip8-emulator/">Link for web version</a>
-        <<<<<<<
+        &lt;&lt;&lt;&lt;&lt;&lt;
       </h2>
     </summary>
   </ul>
