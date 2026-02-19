@@ -6,7 +6,7 @@
     <summary>
       <h2 align="center">
         >>>>>>>
-        <a href="https://piotrowskii.github.io/Chip8-emulator/">Link for web version</a>
+        <a target="_blank" rel="noopener noreferrer" href="https://piotrowskii.github.io/Chip8-emulator/">Link for web version</a>
         <<<<<<<
       </h2>
     </summary>
