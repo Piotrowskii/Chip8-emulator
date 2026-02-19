@@ -1,5 +1,19 @@
-<h1>Chip8/Super Chip/XO-Chip Emulator written in rust 🦀</h1>
+<h1>Chip8/Super Chip/XO-Chip Emulator written in Rust 🦀</h1>
 
+</br>
+<div id="user-content-toc">
+  <ul align="center" style="list-style: none;">
+    <summary>
+      <h2 align="center">
+        >>>>>>>
+        <a href="https://piotrowskii.github.io/Chip8-emulator/">Link for web version</a>
+        <<<<<<<
+      </h2>
+    </summary>
+  </ul>
+</div>
+</br>
+          
 <h2>Windows (Sdl2)</h2>
 <table>
   <tr>
