@@ -1,22 +1,20 @@
-use std::path::PathBuf;
 use std::string::ToString;
-use std::sync::{Arc, Mutex};
+use std::sync::{ Mutex};
 // The dioxus prelude contains a ton of common items used in dioxus apps. It's a good idea to import wherever you
 // need dioxus
 use dioxus::prelude::*;
-use web_sys::EventListener;
 use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
-use chip8_lib::chip_8::{Chip8, Mode};
+use chip8_lib::chip_8::{Mode};
 use views::{Home};
-use crate::components::Footer;
-use crate::helpers::chip8_wrapper::Chip8Web;
+//use crate::release_materials::NumpadGraphic;
 
 /// Define a components module that contains all shared components for our app.
 mod components;
 /// Define a views module that contains the UI for all Layouts and Routes for our app.
 mod views;
 mod helpers;
+//mod release_materials;
 
 /// The Route enum is used to define the structure of internal routes in our app. All route enums need to derive
 /// the [`Routable`] trait, which provides the necessary methods for the router to work.
