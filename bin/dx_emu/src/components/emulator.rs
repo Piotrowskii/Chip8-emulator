@@ -3,7 +3,7 @@ use dioxus::core_macro::rsx;
 use dioxus::hooks::{use_signal};
 use chip8_lib::display::Display;
 use dioxus::prelude::*;
-use crate::components::{EmuDisplay, Instructions, MobileKeyboard};
+use crate::components::{EmuDisplay, Footer, Instructions, MobileKeyboard};
 use crate::helpers::chip8_wrapper::Chip8Web;
 use crate::helpers::game::Game;
 use crate::{KEYBOARD_EVENTS, SHOW_KEYBOARD};
@@ -155,6 +155,9 @@ pub fn Emulator() -> Element{
                 MobileKeyboard {
                     game: active_game_signal()
                 }
+            }
+            Footer{
+                game: active_game_signal()
             }
         }
     }

@@ -6,8 +6,10 @@ mod emu_display;
 mod emulator;
 mod mobile_keyboard;
 mod instructions;
+mod footer;
 
 pub use emu_display::EmuDisplay;
 pub use emulator::Emulator;
 pub use mobile_keyboard::MobileKeyboard;
 pub use instructions::Instructions;
+pub use footer::Footer;

@@ -15,13 +15,21 @@ pub struct ControlsGroup{
     pub controls: Vec<(KeyPad, &'static str)>
 }
 
+//authors - https://github.com/JohnEarnest/chip8Archive/blob/master/programs.json
+#[derive(Clone, PartialEq)]
+pub struct Author{
+    pub name: &'static str,
+    pub url: Option<&'static str>,
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Game{
     pub name: &'static str,
     pub bytes: &'static [u8],
     pub mode: Mode,
     pub colors: Colors,
-    pub instructions: Vec<ControlsGroup>
+    pub instructions: Vec<ControlsGroup>,
+    pub author: Option<Author>,
 }
 
 impl Game{
@@ -51,7 +59,11 @@ impl Game{
                         (KeyPad:: Num9, "Right"),
                     ]
                 }
-            ]
+            ],
+            author: Some(Author{
+                name: "SharpenedSpoon",
+                url: None
+            })
         }
     }
     
@@ -90,7 +102,8 @@ impl Game{
                         (KeyPad:: Num6, "Shoot"),
                     ]
                 },
-            ]
+            ],
+            author: None,
         }
     }
 
@@ -121,7 +134,11 @@ impl Game{
                         (KeyPad:: Num6, "Peck / Space"),
                     ]
                 },
-            ]
+            ],
+            author: Some(Author{
+                name: "JohnEarnest",
+                url: Some("https://github.com/JohnEarnest")
+            })
         }
     }
 
@@ -131,15 +148,17 @@ impl Game{
             bytes: include_bytes!("../../assets/roms/octopeg.ch8"),
             mode: Mode::Chip8,
             colors: Colors{
-                plane1: "#554422",
-                plane2: "#456543",
-                mixed: "#EEEEFF",
-                none: "#87CEEB"
+                plane1: "#acd5ff",
+                plane2: "#FF6600",
+                mixed: "#662200",
+                none: "#113152"
             },
             instructions: vec![
                 ControlsGroup{
                     name: "Steering",
                     controls: vec![
+                        (KeyPad:: Num5, "Up"),
+                        (KeyPad:: Num8, "Down"),
                         (KeyPad:: Num7, "Left"),
                         (KeyPad:: Num9, "Right"),
                     ]
@@ -150,7 +169,11 @@ impl Game{
                         (KeyPad:: Num6, "Shoot"),
                     ]
                 },
-            ]
+            ],
+            author: Some(Author{
+                name: "Chromatophore",
+                url: Some("https://github.com/Chromatophore")
+            })
         }
     }
 
@@ -172,7 +195,11 @@ impl Game{
                         (KeyPad:: Num0, "Jump"),
                     ]
                 },
-            ]
+            ],
+            author: Some(Author{
+                name: "LarissaR",
+                url: None
+            })
         }
     }
 }

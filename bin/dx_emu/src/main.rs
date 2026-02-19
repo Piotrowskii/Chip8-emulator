@@ -9,6 +9,7 @@ use web_sys::wasm_bindgen::closure::Closure;
 use web_sys::wasm_bindgen::JsCast;
 use chip8_lib::chip_8::{Chip8, Mode};
 use views::{Home};
+use crate::components::Footer;
 use crate::helpers::chip8_wrapper::Chip8Web;
 
 /// Define a components module that contains all shared components for our app.
@@ -86,17 +87,6 @@ fn App() -> Element {
             id: "test",
             class: "mt-5 select-none md:select-auto",
             Router::<Route> {}
-        }
-        div{
-            class: "fixed bottom-0 w-full text-center",
-            a{
-                class: "text-center",
-                href: "https://github.com/Piotrowskii",
-                p{
-                    class: "text-xl",
-                    "Created by Piotrowskii"
-                }
-            }
         }
     }
 }
